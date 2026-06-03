@@ -1,146 +1,228 @@
-file(GLOB_RECURSE SEQUENCEPARSER_SRC_FILES "sequenceParser/*.cpp" "sequenceParser/*.hpp")
-
-# Find boost
-find_package(Boost 1.53.0
-    COMPONENTS regex system filesystem locale REQUIRED)
-if(NOT Boost_FOUND) 
-    message(FATAL_ERROR "please set BOOST_ROOT environment variable to a proper boost install")
-endif(NOT Boost_FOUND)
-
-# Create 'sequenceparser' static lib
-add_library(sequenceparser-static STATIC ${SEQUENCEPARSER_SRC_FILES})
-set_target_properties(sequenceparser-static PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(sequenceparser-static PROPERTIES OUTPUT_NAME sequenceParser)
-target_include_directories(sequenceparser-static PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${Boost_INCLUDE_DIRS})
-target_link_libraries(sequenceparser-static ${Boost_LIBRARIES})
-
-# Create 'sequenceparser' shared lib
-add_library(sequenceparser-shared SHARED ${SEQUENCEPARSER_SRC_FILES})
-set_target_properties(sequenceparser-shared PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(sequenceparser-shared PROPERTIES OUTPUT_NAME sequenceParser)
-set_target_properties(sequenceparser-shared PROPERTIES SOVERSION ${SEQUENCEPARSER_VERSION_MAJOR})
-set_target_properties(sequenceparser-shared PROPERTIES VERSION ${SEQUENCEPARSER_VERSION})
-target_include_directories(sequenceparser-shared PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${Boost_INCLUDE_DIRS})
-target_link_libraries(sequenceparser-shared ${Boost_LIBRARIES})
-
-### Install sequenceParser libs and include
-install(
-	DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser"
-	DESTINATION "include"
-	FILES_MATCHING
-	PATTERN "*.hpp"
-	PATTERN "*.tcc"
-	PATTERN "*.i"
+# ────────────────────────────────────────────────────────────────────────────
+# Sources
+# ────────────────────────────────────────────────────────────────────────────
+file(GLOB_RECURSE SEQUENCEPARSER_SRC_FILES
+    "sequenceParser/*.cpp"
+    "sequenceParser/*.hpp"
 )
-install(TARGETS sequenceparser-static DESTINATION lib/ OPTIONAL)
-install(TARGETS sequenceparser-shared DESTINATION lib/ OPTIONAL)
 
-### SWIG
+# ────────────────────────────────────────────────────────────────────────────
+# Helper macro: apply common settings to a sequenceParser target
+# ────────────────────────────────────────────────────────────────────────────
+macro(sequenceparser_configure_target _target)
+    target_include_directories(${_target} PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:include>
+    )
+    target_compile_features(${_target} PUBLIC cxx_std_17)
+    set_target_properties(${_target} PROPERTIES
+        OUTPUT_NAME     sequenceParser
+        LINKER_LANGUAGE CXX
+    )
+endmacro()
+
+# Define the name of our export targets set.
+# This export targets set will contain all the targets we want to expose to the outside world.
+set(TARGETS_EXPORT_NAME "${PROJECT_NAME}Targets")
+
+# ────────────────────────────────────────────────────────────────────────────
+# Static library
+# ────────────────────────────────────────────────────────────────────────────
+if(BUILD_STATIC_LIBS)
+    add_library(sequenceparser-static STATIC ${SEQUENCEPARSER_SRC_FILES})
+    sequenceparser_configure_target(sequenceparser-static)
+endif()
+
+# ────────────────────────────────────────────────────────────────────────────
+# Shared library
+# ────────────────────────────────────────────────────────────────────────────
+if(BUILD_SHARED_LIBS)
+    add_library(sequenceparser-shared SHARED ${SEQUENCEPARSER_SRC_FILES})
+    sequenceparser_configure_target(sequenceparser-shared)
+    set_target_properties(sequenceparser-shared PROPERTIES
+        SOVERSION ${SEQUENCEPARSER_VERSION_MAJOR}
+        VERSION   ${SEQUENCEPARSER_VERSION}
+    )
+endif()
+
+# ────────────────────────────────────────────────────────────────────────────
+# Install: headers + libraries
+# ────────────────────────────────────────────────────────────────────────────
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser"
+    DESTINATION include
+    FILES_MATCHING
+        PATTERN "*.hpp"
+        PATTERN "*.tcc"
+        PATTERN "*.i"
+)
+
+if(BUILD_STATIC_LIBS)
+    install(TARGETS sequenceparser-static
+        EXPORT ${TARGETS_EXPORT_NAME}
+        DESTINATION lib/ OPTIONAL
+    )
+endif()
+if(BUILD_SHARED_LIBS)
+    install(TARGETS sequenceparser-shared
+        EXPORT ${TARGETS_EXPORT_NAME}
+        DESTINATION lib/ OPTIONAL
+    )
+endif()
+
+# ────────────────────────────────────────────────────────────────────────────
+# Exporting targets
+# ────────────────────────────────────────────────────────────────────────────
+
+# With our targets properly defined, we can generate the configuration files
+# to describe the targets we export.
+# In this simple project, we only export our minicpp library, but we could have
+# several of them.
+
+include(CMakePackageConfigHelpers)
+
+# Path to install CMake configuration files.
+set(CONFIG_INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+
+set(CONFIG_FILE_TEMPLATE "${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in")
+set(CONFIG_FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake")
+set(CONFIG_VERSION_FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake")
+
+# Generate config file from template.
+# Note: INSTALL_DESTINATION must match where the config file will be installed, but does not install it.
+configure_package_config_file(
+    ${CONFIG_FILE_TEMPLATE} ${CONFIG_FILE}
+    INSTALL_DESTINATION ${CONFIG_INSTALL_DESTINATION}
+)
+
+# Generate a config version file to indicate backwards compatibility strategy.
+write_basic_package_version_file(
+    ${CONFIG_VERSION_FILE}
+    VERSION ${CMAKE_PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+# Actually install the generated config and configVersion files.
+install(
+    FILES ${CONFIG_FILE} ${CONFIG_VERSION_FILE}
+    #DESTINATION ${CONFIG_INSTALL_DESTINATION}
+    DESTINATION lib/cmake
+)
+
+# Install our export target set next to the config files.
+install(
+    EXPORT ${TARGETS_EXPORT_NAME}
+    FILE ${TARGETS_EXPORT_NAME}.cmake
+    NAMESPACE ${PROJECT_NAME}::
+    #DESTINATION ${CONFIG_INSTALL_DESTINATION}
+    DESTINATION lib/cmake
+)
+
+# ────────────────────────────────────────────────────────────────────────────
+# SWIG bindings (Python / Java) – optional
+# ────────────────────────────────────────────────────────────────────────────
 find_package(SWIG)
-if(SWIG_FOUND)
-	# Load Modules/UseSWIG.cmake
-	include(${SWIG_USE_FILE})
+if(NOT SWIG_FOUND)
+    message(STATUS "SWIG not found – skipping Python and Java bindings")
+    return()
+endif()
 
-	# Configure Swig
-	set(CMAKE_SWIG_OUTDIR "${CMAKE_CURRENT_BINARY_DIR}/sequenceParser")
-	set(SEQUENCEPARSER_BINDING_FILE "sequenceParser/sequenceParser.i")
-	set_source_files_properties(${SEQUENCEPARSER_BINDING_FILE} PROPERTIES CPLUSPLUS ON)
+include(${SWIG_USE_FILE})
 
-	# Swig flags
-	set(COMMON_SWIG_FLAGS -c++ -fcompact -small -O -Werror)
+set(CMAKE_SWIG_OUTDIR "${CMAKE_CURRENT_BINARY_DIR}/sequenceParser")
+set(SEQUENCEPARSER_BINDING_FILE "sequenceParser/sequenceParser.i")
+set_source_files_properties(${SEQUENCEPARSER_BINDING_FILE} PROPERTIES
+    CPLUSPLUS       ON
+    SWIG_MODULE_NAME sequenceParser   # forces PyInit_sequenceParser (target name has a dash)
+)
 
-	### PYTHON BINDING
-	find_package(PythonLibs ${SEQUENCEPARSER_PYTHON_VERSION})
-	if(PYTHONLIBS_FOUND)
-		include_directories(${PYTHON_INCLUDE_PATH})
+set(COMMON_SWIG_FLAGS -c++ -fcompact -small -O -Werror)
 
-		# Swig flags
-		if(${PYTHONLIBS_VERSION_STRING} VERSION_GREATER "3")
-			set(CMAKE_SWIG_FLAGS ${COMMON_SWIG_FLAGS} -py3)
-		endif()
+# ── Python ──────────────────────────────────────────────────────────────────
+# Use the modern FindPython3 module (replaces deprecated FindPythonLibs / CMP0148)
+find_package(Python3 ${SEQUENCEPARSER_PYTHON_VERSION} COMPONENTS Interpreter Development)
+if(Python3_Development_FOUND)
+    set(_py_target sequenceParser)
 
-		# Create '_sequenceparser' shared lib (python)
-		swig_add_module(sequenceparser-py python ${SEQUENCEPARSER_BINDING_FILE})
-		# For Python binding, need to compile the wrapper into a lib called "_<module_name>.so"
-		set_target_properties(${SWIG_MODULE_sequenceparser-py_REAL_NAME} PROPERTIES OUTPUT_NAME _sequenceParser)
-		if(NOT APPLE AND NOT WIN32)
-			set_target_properties(${SWIG_MODULE_sequenceparser-py_REAL_NAME} PROPERTIES SOVERSION ${SEQUENCEPARSER_VERSION_MAJOR})
-			set_target_properties(${SWIG_MODULE_sequenceparser-py_REAL_NAME} PROPERTIES VERSION ${SEQUENCEPARSER_VERSION})
-		endif()
-		# Force the library to look in the project lib folder relatively
-		if(APPLE)
-			set_target_properties(${SWIG_MODULE_sequenceparser-py_REAL_NAME} PROPERTIES INSTALL_RPATH "@loader_path/../../..")
-		else()
-			set_target_properties(${SWIG_MODULE_sequenceparser-py_REAL_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/../../..:$ORIGIN")
-		endif()
-		swig_link_libraries(sequenceparser-py sequenceparser-shared ${PYTHON_LIBRARIES})
+    swig_add_library(${_py_target}
+        TYPE        MODULE
+        LANGUAGE    python
+        SOURCES     ${SEQUENCEPARSER_BINDING_FILE}
+    )
 
-		# Get path to install python binding
-		string(SUBSTRING ${PYTHONLIBS_VERSION_STRING} 0 3 PYTHON_VERSION)
-		set(SEQUENCEPARSER_PYTHON_MODULE_OUTPUT_DIR "lib/python${PYTHON_VERSION}/site-packages/pySequenceParser/")
+    target_include_directories(${_py_target} PRIVATE ${Python3_INCLUDE_DIRS})
+    target_link_libraries(${_py_target} PRIVATE sequenceparser-shared Python3::Module)
 
-		# Install python interface
-		set(SEQUENCEPARSER_PYTHON_BINDING_FILE "${CMAKE_SWIG_OUTDIR}/sequenceParser.py")
-		install(
-			FILES ${SEQUENCEPARSER_PYTHON_BINDING_FILE} ${SEQUENCEPARSER_PYTHON_INIT_FILE}
-			DESTINATION ${SEQUENCEPARSER_PYTHON_MODULE_OUTPUT_DIR}
-			OPTIONAL
-		)
-		# Install python lib and __init__.py files
-		install(TARGETS ${SWIG_MODULE_sequenceparser-py_REAL_NAME} DESTINATION "${SEQUENCEPARSER_PYTHON_MODULE_OUTPUT_DIR}" OPTIONAL)
-		install(CODE "file(WRITE ${CMAKE_INSTALL_PREFIX}/${SEQUENCEPARSER_PYTHON_MODULE_OUTPUT_DIR}/__init__.py)")
-	else()
-		message("PYTHON not found, will not build python binding.")
-	endif()
+    if(NOT APPLE AND NOT WIN32)
+        set_target_properties(${_py_target} PROPERTIES
+            SOVERSION ${SEQUENCEPARSER_VERSION_MAJOR}
+            VERSION   ${SEQUENCEPARSER_VERSION}
+        )
+    endif()
+    set_target_properties(${_py_target} PROPERTIES
+        INSTALL_RPATH "$<IF:$<BOOL:${APPLE}>,@loader_path/../../..,$ORIGIN/../../..:$ORIGIN>"
+    )
 
-	### JAVA BINDING
-	find_package(Java)
-	find_package(JNI)
-	if(JAVA_FOUND AND JNI_FOUND)
-		include(UseJava)
-		include_directories(${JAVA_INCLUDE_PATH})
-		include_directories(${JNI_INCLUDE_DIRS})
+    # Derive major.minor string (e.g. "3.14") from the found Python3 version
+    string(REGEX MATCH "^[0-9]+\\.[0-9]+" _python_version "${Python3_VERSION}")
+    set(SEQUENCEPARSER_PYTHON_MODULE_OUTPUT_DIR
+        "lib/python${_python_version}/site-packages/pySequenceParser/")
 
-		# Swig flags
-		set(CMAKE_SWIG_FLAGS ${COMMON_SWIG_FLAGS} -package org.sequenceparser)
+    install(
+        FILES
+            "${CMAKE_SWIG_OUTDIR}/sequenceParser.py"
+            ${SEQUENCEPARSER_PYTHON_INIT_FILE}
+        DESTINATION ${SEQUENCEPARSER_PYTHON_MODULE_OUTPUT_DIR}
+        OPTIONAL
+    )
+    install(TARGETS ${_py_target}
+        DESTINATION "${SEQUENCEPARSER_PYTHON_MODULE_OUTPUT_DIR}" OPTIONAL)
+    install(CODE
+        "file(WRITE ${CMAKE_INSTALL_PREFIX}/${SEQUENCEPARSER_PYTHON_MODULE_OUTPUT_DIR}/__init__.py)")
+else()
+    message(STATUS "Python3 Development not found – skipping Python binding")
+endif()
 
-		# Create 'sequenceparser-java' shared lib
-		swig_add_module(sequenceparser-java java ${SEQUENCEPARSER_BINDING_FILE})
-		set_target_properties(${SWIG_MODULE_sequenceparser-java_REAL_NAME} PROPERTIES OUTPUT_NAME sequenceParser-java)
-		if(NOT APPLE AND NOT WIN32)
-			set_target_properties(${SWIG_MODULE_sequenceparser-java_REAL_NAME} PROPERTIES SOVERSION ${SEQUENCEPARSER_VERSION_MAJOR})
-			set_target_properties(${SWIG_MODULE_sequenceparser-java_REAL_NAME} PROPERTIES VERSION ${SEQUENCEPARSER_VERSION})
-		endif()
-		# Force the library to look in the project lib folder relatively
-		if(APPLE)
-			set_target_properties(${SWIG_MODULE_sequenceparser-java_REAL_NAME} PROPERTIES INSTALL_RPATH "@loader_path/..")
-		else()
-			set_target_properties(${SWIG_MODULE_sequenceparser-java_REAL_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/..:$ORIGIN")
-		endif()
-		swig_link_libraries(sequenceparser-java sequenceparser-shared)
+# ── Java ─────────────────────────────────────────────────────────────────────
+find_package(Java)
+find_package(JNI)
+if(JAVA_FOUND AND JNI_FOUND)
+    include(UseJava)
+    include_directories(${JAVA_INCLUDE_PATH} ${JNI_INCLUDE_DIRS})
 
-		# Post build of java binding : compile java files (generate class files) and create jar
-		set(SEQUENCEPARSER_JAVA_OUTPUT_PATH "${PROJECT_BINARY_DIR}/src/sequenceParser")
-		set(SEQUENCEPARSER_JAVA_CLASS_OUTPUT_PATH "${SEQUENCEPARSER_JAVA_OUTPUT_PATH}/target")
-		set(SEQUENCEPARSER_JAR_PATH "${PROJECT_BINARY_DIR}/src")
-		set(SEQUENCEPARSER_JAR_NAME "sequenceparser-${SEQUENCEPARSER_VERSION}.jar")
-		execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${SEQUENCEPARSER_JAVA_CLASS_OUTPUT_PATH})
-		
-		ADD_CUSTOM_COMMAND(
-			TARGET sequenceparser-java
-			POST_BUILD
-			COMMAND ${Java_JAVAC_EXECUTABLE} "-d" ${SEQUENCEPARSER_JAVA_CLASS_OUTPUT_PATH} "\"${SEQUENCEPARSER_JAVA_OUTPUT_PATH}\"/*.java"
-			COMMAND ${Java_JAR_EXECUTABLE} cf ${SEQUENCEPARSER_JAR_NAME} "-C" ${SEQUENCEPARSER_JAVA_CLASS_OUTPUT_PATH} "."
-		)
+    set(CMAKE_SWIG_FLAGS ${COMMON_SWIG_FLAGS} -package org.sequenceparser)
 
-		# Install java lib and jar files
-		install(TARGETS ${SWIG_MODULE_sequenceparser-java_REAL_NAME} DESTINATION "lib/java" OPTIONAL)
-		install(FILES ${SEQUENCEPARSER_JAR_PATH}/${SEQUENCEPARSER_JAR_NAME} DESTINATION "share/java/" OPTIONAL)
-	else()
-		message("JAVA not found, will not build java binding.")
-	endif()
+    swig_add_module(sequenceparser-java java ${SEQUENCEPARSER_BINDING_FILE})
+    set(_java_target ${SWIG_MODULE_sequenceparser-java_REAL_NAME})
 
-else(SWIG_FOUND)
-	message("SWIG not found, will not build python and java bindings.")
+    set_target_properties(${_java_target} PROPERTIES OUTPUT_NAME sequenceParser-java)
+    if(NOT APPLE AND NOT WIN32)
+        set_target_properties(${_java_target} PROPERTIES
+            SOVERSION ${SEQUENCEPARSER_VERSION_MAJOR}
+            VERSION   ${SEQUENCEPARSER_VERSION}
+        )
+    endif()
+    set_target_properties(${_java_target} PROPERTIES
+        INSTALL_RPATH "$<IF:$<BOOL:${APPLE}>,@loader_path/..,${ORIGIN}/..:${ORIGIN}>"
+    )
+    swig_link_libraries(sequenceparser-java sequenceparser-shared)
 
-endif(SWIG_FOUND)
+    set(_java_src_dir  "${PROJECT_BINARY_DIR}/src/sequenceParser")
+    set(_java_cls_dir  "${_java_src_dir}/target")
+    set(_jar_path      "${PROJECT_BINARY_DIR}/src")
+    set(_jar_name      "sequenceparser-${SEQUENCEPARSER_VERSION}.jar")
+    execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${_java_cls_dir})
+
+    add_custom_command(TARGET sequenceparser-java POST_BUILD
+        COMMAND ${Java_JAVAC_EXECUTABLE}
+                -d ${_java_cls_dir}
+                "${_java_src_dir}/*.java"
+        COMMAND ${Java_JAR_EXECUTABLE}
+                cf ${_jar_name} -C ${_java_cls_dir} .
+    )
+
+    install(TARGETS ${_java_target} DESTINATION "lib/java" OPTIONAL)
+    install(FILES "${_jar_path}/${_jar_name}" DESTINATION "share/java/" OPTIONAL)
+else()
+    message(STATUS "Java/JNI not found – skipping Java binding")
+endif()
