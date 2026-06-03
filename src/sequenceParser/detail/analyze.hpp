@@ -4,9 +4,6 @@
 #include <sequenceParser/common.hpp>
 #include <sequenceParser/Sequence.hpp>
 
-#include <boost/ptr_container/ptr_vector.hpp>
-#include <boost/lexical_cast.hpp>
-
 #include <iostream>
 #include <iomanip>
 
@@ -59,7 +56,7 @@ void privateBuildSequencesAccordingToPadding(
  *          so there is no reason to create a copy.
  * @return a sequence object with all informations
  */
-std::vector<Sequence> buildSequences( const boost::filesystem::path& directory, const detail::FileStrings& stringParts, std::vector<detail::FileNumbers>& numberParts, const EDetection detectOptions );
+std::vector<Sequence> buildSequences( const std::filesystem::path& directory, const detail::FileStrings& stringParts, std::vector<detail::FileNumbers>& numberParts, const EDetection detectOptions );
 
 /**
  * @brief Extract number and string parts from a filename.

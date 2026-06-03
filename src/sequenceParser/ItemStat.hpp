@@ -4,6 +4,7 @@
 #include "common.hpp"
 #include "Item.hpp"
 #include "system.hpp"
+#include <filesystem>
 
 #ifdef __UNIX__
     #include <sys/types.h>
@@ -18,10 +19,10 @@ public:
 	ItemStat( const Item& item, const bool approximative=true );
 
 private:
-	void statFolder( const boost::filesystem::path& path );
-	void statFile( const boost::filesystem::path& path );
+	void statFolder( const std::filesystem::path& path );
+	void statFile( const std::filesystem::path& path );
 	void statSequence( const Item& item, const bool approximative );
-	void statLink( const boost::filesystem::path& path );
+	void statLink( const std::filesystem::path& path );
 #ifdef __UNIX__
 	void setPermissions( const mode_t& protection );
     /// @brief Update user name from filesystem

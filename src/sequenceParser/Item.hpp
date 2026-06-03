@@ -4,7 +4,7 @@
 #include "common.hpp"
 #include "Sequence.hpp"
 
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 
 namespace sequenceParser {
 
@@ -31,14 +31,14 @@ public:
 	}
 
 #ifndef SWIG
-	Item( const EType type, const boost::filesystem::path& filepath )
+	Item( const EType type, const std::filesystem::path& filepath )
 	: _type(type)
 	, _path(filepath)
 	{
-		BOOST_ASSERT( type != eTypeSequence );
+		assert( type != eTypeSequence );
 	}
 	
-	Item( const Sequence& sequence, const boost::filesystem::path& folder )
+	Item( const Sequence& sequence, const std::filesystem::path& folder )
 	: _type(eTypeSequence)
 	, _path(folder)
 	, _sequence(sequence)
@@ -69,8 +69,8 @@ public:
 	const Sequence& getSequence() const { return _sequence; }
 
 #ifndef SWIG
-	const boost::filesystem::path& getPath() const { return _path; }
-	const boost::filesystem::path getFolderPath() const { return _path.parent_path(); }
+	const std::filesystem::path& getPath() const { return _path; }
+	const std::filesystem::path getFolderPath() const { return _path.parent_path(); }
 #endif
 
 	std::string getAbsoluteFirstFilename() const;
@@ -86,14 +86,14 @@ public:
 private:
 	EType _type;
 	
-	boost::filesystem::path _path;
+	std::filesystem::path _path;
 
 	Sequence _sequence;
 };
 
 
 #ifndef SWIG
-EType getTypeFromPath( const boost::filesystem::path& path );
+EType getTypeFromPath( const std::filesystem::path& path );
 #endif
 /**
  * @warning The methods checks if the given path corresponds to a link, a file or a folder (in the filesystem).

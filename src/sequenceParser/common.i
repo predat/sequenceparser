@@ -11,7 +11,8 @@ namespace std {
 
 %{
 #include "sequenceParser/common.hpp"
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
+#include <system_error>
 %}
 
 namespace sequenceParser {
@@ -23,14 +24,14 @@ try
 {
 	$action
 }
-catch (boost::filesystem::filesystem_error& e)
+catch (std::filesystem::filesystem_error& e)
 {
 	std::string message;
 	message = e.code().message() + " : ";
- 	if (!e.path1().empty())
+	if (!e.path1().empty())
         message += e.path1().string() + ".";
 		
- 	if (!e.path2().empty())
+	if (!e.path2().empty())
         message += " " + e.path2().string();
 	SWIG_exception( SWIG_IOError, message.c_str() );	
 }

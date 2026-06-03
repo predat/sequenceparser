@@ -1,11 +1,11 @@
 #ifndef _SEQUENCE_PARSER_FILE_STRINGS_HPP_
 #define _SEQUENCE_PARSER_FILE_STRINGS_HPP_
 
-#include <boost/lambda/lambda.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/foreach.hpp>
+#include <filesystem>
+#include <functional>
 
 #include <vector>
+#include <iostream>
 
 namespace sequenceParser {
 namespace detail {
@@ -16,7 +16,6 @@ namespace detail {
  */
 class FileStrings
 {
-
 public:
 	typedef FileStrings This;
 	typedef std::vector<std::string> Vec;
@@ -67,9 +66,7 @@ private:
 	Vec _id;
 };
 
-// NOTE How we can replace this with a wrapper?
-// Like boost::function, boost::bind,...
-struct SeqIdHash : std::unary_function<FileStrings, std::size_t>
+struct SeqIdHash
 {
 	std::size_t operator()(const FileStrings & p ) const
 	{

@@ -1,5 +1,5 @@
 
-%module sequenceParser
+%module(moduleimport="from . import _sequenceParser") sequenceParser
 
 %include "common.i"
 

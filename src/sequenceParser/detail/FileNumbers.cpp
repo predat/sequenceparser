@@ -1,5 +1,8 @@
 #include "FileNumbers.hpp"
 
+#include <cassert>
+#include <ostream>
+
 namespace sequenceParser {
 namespace detail {
 
@@ -8,7 +11,7 @@ bool FileNumbers::SortByNumber::operator()( const FileNumbers& a, const FileNumb
 {
 	// can't have multiple size, if multiple size they must have a
 	// different SeqId
-	BOOST_ASSERT( a._numbers.size() == b._numbers.size() );
+	assert( a._numbers.size() == b._numbers.size() );
 	for( FileNumbers::Vec::const_iterator i = a._numbers.begin(), iEnd = a._numbers.end(), vi = b._numbers.begin(); i != iEnd; ++i, ++vi )
 	{
 		if( i->first < vi->first )
@@ -23,7 +26,7 @@ bool FileNumbers::SortByPadding::operator()( const FileNumbers& a, const FileNum
 {
 	// can't have multiple size, if multiple size they must have a
 	// different SeqId
-	BOOST_ASSERT( a._numbers.size() == b._numbers.size() );
+	assert( a._numbers.size() == b._numbers.size() );
 	for( FileNumbers::Vec::const_iterator i = a._numbers.begin(), iEnd = a._numbers.end(), vi = b._numbers.begin(); i != iEnd; ++i, ++vi )
 	{
 		const std::size_t iPadding = extractPadding( i->second );
@@ -45,7 +48,7 @@ bool FileNumbers::SortByDigit::operator()( const FileNumbers& a, const FileNumbe
 {
 	// can't have multiple size, if multiple size they must have a
 	// different SeqId
-	BOOST_ASSERT( a._numbers.size() == b._numbers.size() );
+	assert( a._numbers.size() == b._numbers.size() );
 	for( FileNumbers::Vec::const_iterator i = a._numbers.begin(), iEnd = a._numbers.end(), vi = b._numbers.begin(); i != iEnd; ++i, ++vi )
 	{
 		const std::size_t iMaxPadding = extractMaxPadding( i->second );
@@ -65,13 +68,13 @@ bool FileNumbers::SortByDigit::operator()( const FileNumbers& a, const FileNumbe
 
 std::ostream& operator<<(std::ostream& os, const FileNumbers& p)
 {
-    os << "[";
-    BOOST_FOREACH( const FileNumbers::Vec::value_type & v, p._numbers )
-		{
-		    os << v.second << ",";
-		}
-    os << "]";
-    return os;
+	os << "[";
+	for( const FileNumbers::Vec::value_type& v : p._numbers )
+	{
+		os << v.second << ",";
+	}
+	os << "]";
+	return os;
 }
 
 }

@@ -1,6 +1,7 @@
 #include "FileStrings.hpp"
 
-#include <boost/functional/hash.hpp>
+#include <functional>
+#include <ostream>
 
 namespace sequenceParser {
 namespace detail {
@@ -8,11 +9,11 @@ namespace detail {
 std::size_t FileStrings::getHash() const
 {
 	std::size_t seed = 0;
-
-	BOOST_FOREACH( const Vec::value_type & i, _id )
+	// Equivalent to boost::hash_combine
+	for( const Vec::value_type& i : _id )
 	{
-		boost::hash_combine( seed, i );
-		boost::hash_combine( seed, 1 ); // not like the hash of the concatenation of _id
+		seed ^= std::hash<std::string>{}(i) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		seed ^= std::hash<int>{}(1)         + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 	}
 	return seed;
 }
@@ -20,7 +21,8 @@ std::size_t FileStrings::getHash() const
 std::ostream& operator<<( std::ostream& os, const FileStrings& p )
 {
 	os << "[";
-	std::for_each( p._id.begin(), p._id.end(), os << boost::lambda::_1 << "," );
+	for( const auto& s : p._id )
+		os << s << ",";
 	os << "]";
 	return os;
 }

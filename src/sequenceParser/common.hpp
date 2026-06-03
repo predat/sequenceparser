@@ -2,7 +2,7 @@
 #define _SEQUENCE_PARSER_COMMON_DEFINITIONS_HPP
 
 #define SEQUENCEPARSER_VERSION_MAJOR 2
-#define SEQUENCEPARSER_VERSION_MINOR 1
+#define SEQUENCEPARSER_VERSION_MINOR 2
 #define SEQUENCEPARSER_VERSION_MICRO 0
 
 #include <string>
@@ -22,17 +22,6 @@ typedef SSIZE_T ssize_t;
 typedef ::ssize_t ssize_t;
 #endif
 }
-
-// Forward declaration
-namespace boost {
-namespace filesystem {
-class path;
-}
-}
-
-#ifdef SWIGJAVA
-#include <boost/locale.hpp>
-#endif
 
 namespace sequenceParser {
 
@@ -104,15 +93,61 @@ SEQUENCEPARSER_ENUM_BITWISE_OPERATORS(EDetection)
 
 #ifdef SWIGJAVA
 /**
- * @brief Strings are retrieved from JNI using GetStringUTFChars.
- * So there is an implicit UTF8 conversion.
+ * @brief Convert a UTF-8 string to Latin-1 (ISO-8859-1).
+ *
+ * JNI delivers strings via GetStringUTFChars in Modified UTF-8.
+ * Filesystem paths on legacy systems may be in Latin-1, so we
+ * re-encode before passing them to std::filesystem.
+ *
+ * Latin-1 codepoints U+0000–U+00FF map to UTF-8 as:
+ *   U+0000–U+007F → 0xxxxxxx          (1 byte, identical)
+ *   U+0080–U+00FF → 110000xx 10xxxxxx (2 bytes)
+ * Any codepoint outside U+00FF is replaced with '?'.
  */
-std::string utf8_to_latin1( const std::string& utf8_path )
+
+inline std::string utf8_to_latin1( const std::string& utf8 )
 {
-	using namespace boost::locale::conv;
-	std::string latin1_path = from_utf<char>(utf8_path, "Latin1");
-	return latin1_path;
-}
+	std::string latin1;
+	latin1.reserve( utf8.size() );
+	for( std::size_t i = 0; i < utf8.size(); )
+	{
+		const unsigned char c = static_cast<unsigned char>( utf8[i] );
+		if( c < 0x80 )
+		{
+			// U+0000–U+007F: single byte, identical in Latin-1
+			latin1 += static_cast<char>( c );
+			++i;
+		}
+		else if( (c & 0xE0) == 0xC0 && i + 1 < utf8.size() )
+		{
+			// U+0080–U+07FF: two-byte sequence
+			const unsigned char c2 = static_cast<unsigned char>( utf8[i + 1] );
+			if( (c2 & 0xC0) == 0x80 )
+			{
+				const unsigned int codepoint = ((c & 0x1F) << 6) | (c2 & 0x3F);
+				// Keep only Latin-1 range (U+0000–U+00FF)
+				latin1 += ( codepoint <= 0xFF )
+				           ? static_cast<char>( codepoint )
+				           : '?';
+				i += 2;
+			}
+			else
+			{
+				latin1 += '?';
+				++i;
+			}
+		}
+		else
+		{
+			// Three/four-byte sequence: codepoint > U+07FF, outside Latin-1.
+			// Skip the full sequence to stay in sync.
+			if( (c & 0xF0) == 0xE0 )      i += 3;
+			else if( (c & 0xF8) == 0xF0 ) i += 4;
+			else                           ++i;
+			latin1 += '?';
+		}
+	}
+	return latin1;
 #endif
 
 }

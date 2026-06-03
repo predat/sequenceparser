@@ -3,29 +3,29 @@
 #include "FileNumbers.hpp"
 #include "FileStrings.hpp"
 
-#include <boost/regex.hpp>
-#include <boost/unordered_map.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/foreach.hpp>
-
+#include <regex>
+#include <unordered_map>
 #include <set>
+#include <cassert>
+#include <iterator>
+#include <filesystem>
 
 
 namespace sequenceParser {
 
 using detail::FileNumbers;
 using detail::FileStrings;
-namespace bfs = boost::filesystem;
+namespace fs = std::filesystem;
 
 bool detectDirectoryInResearch( std::string& researchPath, std::vector<std::string>& filters, std::string& filename )
 {
-	if( bfs::exists( researchPath ) )
+	if( fs::exists( researchPath ) )
 	{
-		if( !bfs::is_directory( researchPath ) )
+		if( !fs::is_directory( researchPath ) )
 		{
 			// the researchPath is an existing file, we search into the parent directory with filtering these filename
 			// warning: can find a sequence based on a filename
-			bfs::path tmpPath( researchPath );
+			fs::path tmpPath( researchPath );
 			filename = researchPath;
 
 			if( tmpPath.has_parent_path() )
@@ -38,15 +38,15 @@ bool detectDirectoryInResearch( std::string& researchPath, std::vector<std::stri
 	}
 	else
 	{
-		bfs::path tmpPath( researchPath );
+		fs::path tmpPath( researchPath );
 		if( !tmpPath.has_parent_path() )
 		{
 			filters.push_back( researchPath );
 			researchPath = ".";
 			return true;
 		}
-		bfs::path parentPath( tmpPath.parent_path() );
-		if( !bfs::exists( parentPath ) )
+		fs::path parentPath( tmpPath.parent_path() );
+		if( !fs::exists( parentPath ) )
 		{
 			// researchPath and it parent don't exists, could not find file/sequence/folder
 			return false;
@@ -157,38 +157,8 @@ void privateBuildSequencesAccordingToPadding(
 	}
 	else
 	{
-		// We have a mix of padding and no padding.
-		// It may be the same number of digits (strict or ambiguous padding: [09, 10]).
-		// Some ambiguous cases:
-		//	--------------------------------------------------------------------------------
-		//	|     sort by padding      |     sort by padding     |     sort by digits      |
-		//	--------------------------------------------------------------------------------
-		//	|  number  padding digits  |  number padding digits  |  number padding digits  |
-		//	|  1       0       1       |  100    0       3       |  1      0       1       |
-		//	|  5       0       1       |  102    0       3       |  5      0       1       |
-		//	|  10      0       2       |                         |  10     0       2       |
-		//	|  100     0       3       |  001    3       3       |                         |
-		//	|  102     0       3       |  002    3       3       |  001    3       3       |
-		//	|  1000    0       4       |  099    3       3       |  002    3       3       |
-		//	|                          |                         |  099    3       3       |
-		//	|  001     3       3       |  0001   4       4       |  100    0       3       |
-		//	|  002     3       3       |  0123   4       4       |  102    0       3       |
-		//	|  099     3       3       |  1234   4       4       |                         |
-		//	|                          |                         |  0001   4       4       |
-		//	|  0001    4       4       |                         |  0123   4       4       |
-		//	|  0123    4       4       |                         |  1234   4       4       |
-		//	|  1234    4       4       |                         |                         |
-		//	|                          |                         |  10000  0       5       |
-		//	--------------------------------------------------------------------------------
-		//	|                          |  The sequence without   |   One sequence without  |
-		//	|   One sequence without   |  padding can be merge   | padding, should use a   |
-		//	|        padding           |   in sequence with      |     sort by padding     |
-		//	|                          |        padding 3        |                         |
-		//	--------------------------------------------------------------------------------
-		//	|          YES             |   NO : sort by digits   |  NO : sort by padding   |
-		//	--------------------------------------------------------------------------------
 		onlyConsiderPadding = false;
-		BOOST_FOREACH( const std::size_t maxPadding, ambiguousMaxPaddings )
+		for( const std::size_t maxPadding : ambiguousMaxPaddings )
 		{
 			if( paddings.find( maxPadding ) == paddings.end() )
 			{
@@ -202,12 +172,11 @@ void privateBuildSequencesAccordingToPadding(
 
 	if( onlyConsiderPadding )
 	{
-		//std::cout << "Detector onlyConsiderPadding: " << __LINE__ << std::endl;
 		// sort by padding
 		std::sort( numberPartsBegin, numberPartsEnd, FileNumbers::SortByPadding() );
 		// split when the padding changed
 		std::vector<FileNumbers>::const_iterator first = numberPartsBegin;
-		for( std::vector<FileNumbers>::const_iterator it = boost::next(first); it != numberPartsEnd; ++it )
+		for( std::vector<FileNumbers>::const_iterator it = std::next(first); it != numberPartsEnd; ++it )
 		{
 			if( first->getFixedPadding(index) != it->getFixedPadding(index) )
 			{
@@ -222,22 +191,21 @@ void privateBuildSequencesAccordingToPadding(
 	}
 	else
 	{
-		//std::cout << "Detector onlyConsiderDigits: " << __LINE__ << std::endl;
 		// sort by digits
 		std::sort( numberPartsBegin, numberPartsEnd, FileNumbers::SortByDigit() );
 		// split when the number of digits changed
 		std::vector<FileNumbers>::const_iterator first = numberPartsBegin;
-		for( std::vector<FileNumbers>::const_iterator it = boost::next(numberPartsBegin); it != numberPartsEnd; ++it )
+		for( std::vector<FileNumbers>::const_iterator it = std::next(numberPartsBegin); it != numberPartsEnd; ++it )
 		{
 			if( first->getMaxPadding(index) != it->getMaxPadding(index) )
 			{
-				const std::size_t p = boost::prior(it)->getFixedPadding(index);
+				const std::size_t p = std::prev(it)->getFixedPadding(index);
 				const std::size_t pStart = first->getFixedPadding(index);
 				result.push_back( privateBuildSequence( defaultSeq, stringParts, first, it, index, pStart, first->getMaxPadding(index) ) );
 				first = it;
 			}
 		}
-		const std::size_t p = boost::prior(numberPartsEnd)->getFixedPadding(index);
+		const std::size_t p = std::prev(numberPartsEnd)->getFixedPadding(index);
 		const std::size_t pStart = first->getFixedPadding(index);
 		result.push_back( privateBuildSequence( defaultSeq, stringParts, first, numberPartsEnd, index, pStart, first->getFixedPadding(index) ) );
 		return;
@@ -247,7 +215,7 @@ void privateBuildSequencesAccordingToPadding(
 
 bool getVaryingNumber( std::ssize_t& index, const FileNumbers& a, const FileNumbers& b )
 {
-	BOOST_ASSERT( a.size() == b.size() );
+	assert( a.size() == b.size() );
 	bool foundOne = false;
 	for( std::size_t i = 0; i < a.size(); ++i )
 	{
@@ -267,13 +235,13 @@ bool getVaryingNumber( std::ssize_t& index, const FileNumbers& a, const FileNumb
 	return foundOne; // we found one varying index
 }
 
-std::vector<Sequence> buildSequences( const boost::filesystem::path& directory, const FileStrings& stringParts, std::vector<FileNumbers>& numberParts, const EDetection detectOptions )
+std::vector<Sequence> buildSequences( const fs::path& directory, const FileStrings& stringParts, std::vector<FileNumbers>& numberParts, const EDetection detectOptions )
 {
 	Sequence defaultSeq;
 
-	BOOST_ASSERT( numberParts.size() > 0 );
+	assert( numberParts.size() > 0 );
 	// assert all FileNumbers have the same size...
-	BOOST_ASSERT( numberParts.front().size() == numberParts.back().size() );
+	assert( numberParts.front().size() == numberParts.back().size() );
 	const std::size_t len = numberParts.front().size();
 	std::vector<Sequence> result;
 	
@@ -292,7 +260,7 @@ std::vector<Sequence> buildSequences( const boost::filesystem::path& directory, 
 	{
 		const std::string t = numberParts.front().getString( i );
 
-		BOOST_FOREACH( const FileNumbers& sn, numberParts )
+		for( const FileNumbers& sn : numberParts )
 		{
 			if( sn.getString( i ) != t )
 			{
@@ -302,8 +270,6 @@ std::vector<Sequence> buildSequences( const boost::filesystem::path& directory, 
 		}
 	}
 	
-	//std::cout << "allIndex.size(): " << allIndex.size() << std::endl;
-	
 	if( allIndex.size() == 1 )
 	{
 		// if it's a simple sequence, but may be mix multiple paddings
@@ -312,22 +278,10 @@ std::vector<Sequence> buildSequences( const boost::filesystem::path& directory, 
 	}
 	
 	// it's a multi-sequence
-	
-	// ambiguous example
-	// 1 2 3
-	// 1 3 3
-	// 1 4 3
-	// 1 5 3 // could go in both sequences
-	//// split here
-	// 1 5 4
-	// 1 5 5
-	// 1 5 6
-	// 1 5 7
-	
 	std::sort( numberParts.begin(), numberParts.end(), FileNumbers::SortByPadding() );
 
 	std::vector<FileNumbers>::iterator first = numberParts.begin();
-	std::vector<FileNumbers>::iterator it = boost::next(first);
+	std::vector<FileNumbers>::iterator it = std::next(first);
 	std::vector<FileNumbers>::iterator itEnd = numberParts.end();
 	std::ssize_t previousIndex = -1;
 	std::ssize_t index = -1;
@@ -335,9 +289,6 @@ std::vector<Sequence> buildSequences( const boost::filesystem::path& directory, 
 	
 	for( ; it != itEnd; ++it )
 	{
-		//std::cout << "________________________________________" <<  std::endl;
-		//std::cout << "first: " << *first <<  std::endl;
-		//std::cout << "it: " << *it <<  std::endl;
 		if( getVaryingNumber( index, *first, *it ) )
 		{
 			if( previousIndex != -1 && // we previously have a sequence and
@@ -345,11 +296,6 @@ std::vector<Sequence> buildSequences( const boost::filesystem::path& directory, 
 			{
 				split = true;
 			}
-//			else
-//			{
-//				// we don't have a sequence before, there is now one varying number,
-//				// so it's the next sequence
-//			}
 		}
 		else
 		{
@@ -379,39 +325,39 @@ std::vector<Sequence> buildSequences( const boost::filesystem::path& directory, 
 std::size_t decomposeFilename( const std::string& filename, FileStrings& stringParts, FileNumbers& numberParts, const EDetection& options )
 {
 	static const std::size_t max = std::numeric_limits<Time>::digits10;
-	std::string regex;
+	std::string regexStr;
 	if( options & eDetectionNegative )
 	{
-		regex = "[\\+\\-]?+\\d{1," + boost::lexical_cast<std::string>( max ) + "}";
+		regexStr = "[\\+\\-]?\\d{1," + std::to_string( max ) + "}";
 	}
 	else
 	{
-		regex = "\\d{1," + boost::lexical_cast<std::string>( max ) + "}";
+		regexStr = "\\d{1," + std::to_string( max ) + "}";
 	}
-	const boost::regex re( regex );
-	static const int subs[] = { -1, 0 }; // get before match and current match
-	boost::sregex_token_iterator m( filename.begin(), filename.end(), re, subs );
-	boost::sregex_token_iterator end;
+	const std::regex re( regexStr );
+	// Iterate over matches and non-matches to interleave string/number parts
+	auto it  = std::sregex_iterator( filename.begin(), filename.end(), re );
+	auto end = std::sregex_iterator();
 
-//	std::cout << "________________________________________" << std::endl;
-//	std::cout << "filename: " << filename << std::endl;
-//	std::cout << "regex: " << regex << std::endl;
-	while( m != end )
+	std::size_t lastEnd = 0;
+	for( ; it != end; ++it )
 	{
-		// begin with string id, can be an empty string if str begins with a number
-//		std::cout << "stringPart: " << *m << std::endl;
-		stringParts.getId().push_back( *m++ );
-		if( m != end ) // if end with a string and not a number
-		{
-//			std::cout << "numberPart: " << *m << std::endl;
-			numberParts.push_back( *m++ );
-		}
+		const std::smatch& m = *it;
+		// The string part before this number match
+		stringParts.getId().push_back( filename.substr( lastEnd, m.position() - lastEnd ) );
+		// The number part
+		numberParts.push_back( m.str() );
+		lastEnd = m.position() + m.length();
 	}
-	if( stringParts.getId().size() == numberParts.size() )
-	{
-		stringParts.getId().push_back( "" ); // we end with an empty string
-	}
-	//std::cout << numberParts.size() << std::endl;
+	// Trailing string part (may be empty)
+	stringParts.getId().push_back( filename.substr( lastEnd ) );
+
+	// Remove the trailing empty string only if we ended on a number (original code behaviour)
+	// The original code pushed a trailing "" when stringParts.size() == numberParts.size(),
+	// but with our approach we always push a trailing string (possibly ""), so the invariant
+	// stringParts.size() == numberParts.size() + 1 is always satisfied here.
+	// Nothing to do.
+
 	return numberParts.size();
 }
 

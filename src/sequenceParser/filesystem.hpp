@@ -5,7 +5,7 @@
 #include "Item.hpp"
 #include "Sequence.hpp"
 
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 
 #include <iostream>
 #include <iomanip>
@@ -32,7 +32,7 @@ bool browseSequence( Sequence& outSequence, const std::string& pattern, const EP
  * @return A vector of files, sequences and directories.
  */
 std::vector<Item> browse(
-		const boost::filesystem::path& directory,
+		const std::filesystem::path& directory,
 		const EDetection detectOptions = eDetectionDefault,
 		const std::vector<std::string>& filters = std::vector<std::string>() );
 
@@ -45,9 +45,9 @@ inline std::vector<Item> browse(
 		const std::vector<std::string>& filters = std::vector<std::string>() )
 {
 #ifdef SWIGJAVA
-	return browse( boost::filesystem::path(utf8_to_latin1(directory)), detectOptions, filters );
+	return browse( std::filesystem::path(utf8_to_latin1(directory)), detectOptions, filters );
 #else
-	return browse( boost::filesystem::path(directory), detectOptions, filters );
+	return browse( std::filesystem::path(directory), detectOptions, filters );
 #endif
 }
 

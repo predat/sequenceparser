@@ -1,9 +1,11 @@
 #include "Item.hpp"
 
-#include <boost/filesystem.hpp>
+#include <cassert>
+#include <filesystem>
+#include <ostream>
 
 
-namespace bfs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace sequenceParser {
 
@@ -16,7 +18,8 @@ std::string Item::getAbsoluteFirstFilename() const
 }
 
 
-std::vector<Item> Item::explode() const{
+std::vector<Item> Item::explode() const
+{
 	std::vector<Item> outItems;
 
 	if(_type != eTypeSequence){
@@ -24,8 +27,8 @@ std::vector<Item> Item::explode() const{
 		return outItems;
 	}
 
-	const std::vector<boost::filesystem::path>& seqFilesPath = getSequence().getAbsoluteFilesPath(_path.parent_path());
-	BOOST_FOREACH(const boost::filesystem::path& filePath, seqFilesPath)
+	const std::vector<fs::path>& seqFilesPath = getSequence().getAbsoluteFilesPath(_path.parent_path());
+	for( const fs::path& filePath : seqFilesPath )
 		outItems.push_back(Item(getTypeFromPath(filePath), filePath));
 	return outItems;
 }
@@ -37,17 +40,17 @@ std::string Item::getFirstFilename() const
 	return getFilename();
 }
 
-EType getTypeFromPath( const boost::filesystem::path& path )
+EType getTypeFromPath( const fs::path& path )
 {
-	if( bfs::is_symlink( path ) )
+	if( fs::is_symlink( path ) )
 	{
 		return eTypeLink;
 	}
-	if( bfs::is_regular_file( path ) )
+	if( fs::is_regular_file( path ) )
 	{
 		return eTypeFile;
 	}
-	if( bfs::is_directory( path ) )
+	if( fs::is_directory( path ) )
 	{
 		return eTypeFolder;
 	}
@@ -57,7 +60,7 @@ EType getTypeFromPath( const boost::filesystem::path& path )
 
 EType getTypeFromPath( const std::string& pathStr )
 {
-	const boost::filesystem::path path( pathStr );
+	const fs::path path( pathStr );
 	return getTypeFromPath(path);
 }
 

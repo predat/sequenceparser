@@ -1,6 +1,7 @@
 #include "FrameRange.hpp"
 
 #include <algorithm>
+#include <ostream>
 #include <sstream>
 
 
@@ -32,7 +33,7 @@ std::ostream& operator<<(std::ostream& os, const std::vector<FrameRange>& frameR
 	if( frameRanges.empty() )
 		return os;
 
-	std::vector<FrameRange>::const_iterator it = frameRanges.begin();
+	auto it = frameRanges.begin();
 	for( std::size_t i = 0; i < frameRanges.size() - 1; ++i, ++it )
 	{
 		os << *it << ",";
@@ -63,9 +64,9 @@ std::vector<FrameRange> extractFrameRanges( const std::vector<Time>& times )
 		return res;
 	}
 
-	std::vector<Time>::const_iterator itPrev = times.begin();
-	std::vector<Time>::const_iterator itEnd = times.end();
-	std::vector<Time>::const_iterator it = itPrev;
+	auto itPrev = times.begin();
+	auto itEnd = times.end();
+	auto it = itPrev;
 	++it;
 
 	itPrev = it;
@@ -126,7 +127,7 @@ std::vector<FrameRange> extractFrameRanges( const std::vector<Time>& times )
 std::size_t FrameRangesView::size() const
 {
 	std::size_t s = 0;
-	BOOST_FOREACH( const FrameRange& frameRange, _data )
+	for( const FrameRange& frameRange : _data )
 	{
 		s += frameRange.getNbFrames();
 	}
@@ -143,7 +144,7 @@ std::string FrameRangesView::string() const
 std::size_t FrameRangesSubView::size() const
 {
 	std::size_t s = 0;
-	BOOST_FOREACH( const FrameRange& frameRange, _data )
+	for( const FrameRange& frameRange : _data )
 	{
 		// TODO: is > _firstTime and < _lastTime
 		s += frameRange.getNbFrames();
@@ -189,6 +190,7 @@ FrameRangesSubView::const_iterator FrameRangesSubView::begin() const
 		case eFrameStatusNoFrameRange:
 			return const_iterator(_data.begin(), 0);
 	}
+	return const_iterator(_data.end(), 0); // unreachable, silence warning
 }
 
 FrameRangesSubView::const_iterator FrameRangesSubView::end() const
@@ -210,6 +212,7 @@ FrameRangesSubView::const_iterator FrameRangesSubView::end() const
 		case eFrameStatusNoFrameRange:
 			return const_iterator(_data.begin(), 0);
 	}
+	return const_iterator(_data.end(), 0); // unreachable, silence warning
 }
 
 }

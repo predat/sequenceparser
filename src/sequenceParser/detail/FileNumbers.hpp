@@ -3,13 +3,9 @@
 
 #include <sequenceParser/common.hpp>
 
-#include <boost/regex.hpp>
-#include <boost/unordered_map.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/foreach.hpp>
-#include <boost/lexical_cast.hpp>
-
+#include <unordered_map>
 #include <set>
+#include <stdexcept>
 
 namespace sequenceParser {
 namespace detail {
@@ -40,18 +36,17 @@ public:
 
 	void push_back( const std::string& s )
 	{
-		Time t;
 		try
 		{
-			t = boost::lexical_cast<Time > ( s );
+			// Use std::stoll which handles the full range of ssize_t (= long/long long on 64-bit linux)
+			const Time t = static_cast<Time>( std::stoll( s ) );
 			_numbers.push_back( Pair( t, s ) );
 		}
 		catch( ... )
 		{
 			// can't retrieve the number,
 			// the number inside the string is probably
-			// ouf of range for Time type.
-			t = 0;
+			// out of range for Time type - silently skip
 		}
 	}
 

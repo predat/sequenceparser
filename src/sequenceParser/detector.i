@@ -16,5 +16,3 @@
 */
 
 %include "detector.hpp"
-
-

@@ -7,7 +7,6 @@
 %{
 #include "sequenceParser/Item.hpp"
 #include "sequenceParser/filesystem.hpp"
-#include <boost/exception/diagnostic_information.hpp>
 %}
 
 %template(ItemVector) ::std::vector<sequenceParser::Item>;
@@ -16,7 +15,7 @@
 
 namespace sequenceParser {
 %ignore browse(
-		const boost::filesystem::path&,
+		const std::filesystem::path&,
 		const EDetection detectOptions,
 		const std::vector<std::string>& );
 }

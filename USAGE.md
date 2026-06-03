@@ -156,8 +156,7 @@ For more information, see the [__python examples__](examples).
 #### In C++
 Set environment:
 ```bash
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/boost/lib:/path/to/sequenceParser/lib
-export PATH=$PATH:/path/to/sequenceParser/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/sequenceParser/lib
 ```
 
 #### In Java
@@ -174,17 +173,16 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/boost/lib
 Set environment:
 ```bash
 export PYTHONPATH=$PYTHONPATH:/path/to/sequenceParser/lib/python<version>/site-packages/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/boost/lib
 ```
 
 ## Projects which uses sequenceParser
 #### TuttleOFX
-TuttleOFX is a library to connect and batch operations with OpenFx plugins. It comes with a set of plugins that allows you to batch process on movies and file sequences.  
+TuttleOFX is a library to connect and batch operations with OpenFx plugins. It comes with a set of plugins that allows you to batch process on movies and file sequences.
 TuttOFX uses sequenceParser in:
 * [tuttleIOPluginLib](https://github.com/tuttleofx/TuttleOFX/tree/develop/libraries/tuttle/src/tuttle/ioplugin/context), its common library for io plugins.
 * [sam](https://github.com/tuttleofx/TuttleOFX/tree/develop/applications/sam), its command line to process sequences.
 
 #### Dude2
-Dude2 is a disk usage monitoring tool.  
+Dude2 is a disk usage monitoring tool.
 Dude2 uses sequenceParser in:
 * its [incremental scan](https://github.com/mikrosimage/Dude2/tree/develop/FileSystemScanner/src/eu/mikrosimage/filesystem/scanner).

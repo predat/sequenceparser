@@ -1,6 +1,7 @@
 #include "ItemStat.hpp"
 
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
+#include <system_error>
 
 #ifdef __UNIX__
 #include <sys/stat.h>
@@ -9,7 +10,7 @@
 #endif
 
 
-namespace bfs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace sequenceParser {
 
@@ -84,27 +85,29 @@ void ItemStat::setPermissions( const mode_t& protection )
 
 void ItemStat::updateUserName()
 {
-    passwd* user = getpwuid(userId);
-    if(user && user->pw_name)
-        userName = std::string(user->pw_name);
+	passwd* user = getpwuid(userId);
+	if(user && user->pw_name)
+		userName = std::string(user->pw_name);
 }
 
 void ItemStat::updateGroupName()
 {
-    group* group = getgrgid(groupId);
-    if(group && group->gr_name)
-        groupName = std::string(group->gr_name);
+	group* group = getgrgid(groupId);
+	if(group && group->gr_name)
+		groupName = std::string(group->gr_name);
 }
 
 #endif
 
-void ItemStat::statLink( const boost::filesystem::path& path )
+void ItemStat::statLink( const fs::path& path )
 {
-	boost::system::error_code errorCode;
-	const long long last_write_time = bfs::last_write_time(path, errorCode);
-	if(errorCode == boost::system::errc::success)
+	std::error_code errorCode;
+	const auto lwt = fs::last_write_time(path, errorCode);
+	if( !errorCode )
 	{
-		modificationTime = last_write_time;
+		// Convert file_time_type to time_t-equivalent seconds since epoch
+		modificationTime = std::chrono::duration_cast<std::chrono::seconds>(
+			lwt.time_since_epoch()).count();
 	}
 
 #ifdef __UNIX__
@@ -134,14 +137,17 @@ void ItemStat::statLink( const boost::filesystem::path& path )
 	realSize = size / nbHardLinks;
 }
 
-void ItemStat::statFolder( const boost::filesystem::path& path )
+void ItemStat::statFolder( const fs::path& path )
 {
-	boost::system::error_code errorCode;
-	const size_t hard_link_count = bfs::hard_link_count(path, errorCode);
-	if(errorCode == boost::system::errc::success)
+	std::error_code errorCode;
+	const auto hlc = fs::hard_link_count(path, errorCode);
+	if( !errorCode )
 	{
-		fullNbHardLinks = nbHardLinks = hard_link_count;
-		modificationTime = bfs::last_write_time(path, errorCode);
+		fullNbHardLinks = nbHardLinks = static_cast<long long>(hlc);
+		const auto lwt = fs::last_write_time(path, errorCode);
+		if( !errorCode )
+			modificationTime = std::chrono::duration_cast<std::chrono::seconds>(
+				lwt.time_since_epoch()).count();
 	}
 
 #ifdef __UNIX__
@@ -169,17 +175,20 @@ void ItemStat::statFolder( const boost::filesystem::path& path )
 	realSize = size;
 }
 
-void ItemStat::statFile( const boost::filesystem::path& path )
+void ItemStat::statFile( const fs::path& path )
 {
-	boost::system::error_code errorCode;
-	const size_t hard_link_count = bfs::hard_link_count(path, errorCode);
-	if(errorCode == boost::system::errc::success)
+	std::error_code errorCode;
+	const auto hlc = fs::hard_link_count(path, errorCode);
+	if( !errorCode )
 	{
-		fullNbHardLinks = nbHardLinks = hard_link_count;
-		size = bfs::file_size(path, errorCode);
+		fullNbHardLinks = nbHardLinks = static_cast<long long>(hlc);
+		size = static_cast<long long>(fs::file_size(path, errorCode));
 		minSize = size;
 		maxSize = size;
-		modificationTime = bfs::last_write_time(path, errorCode);
+		const auto lwt = fs::last_write_time(path, errorCode);
+		if( !errorCode )
+			modificationTime = std::chrono::duration_cast<std::chrono::seconds>(
+				lwt.time_since_epoch()).count();
 	}
 
 #ifdef __UNIX__
@@ -234,13 +243,9 @@ void ItemStat::statSequence( const Item& item, const bool approximative )
 
 	const Sequence& seq = item.getSequence();
 
-	// if( ! approximative )
-	// else
-	//   TODO: stat on a subset of files
-
-	BOOST_FOREACH(Item item, item.explode() )
+	for( Item fileItem : item.explode() )
 	{
-		const ItemStat fileStat(item);
+		const ItemStat fileStat(fileItem);
 
 		// use the most restrictive permissions in the sequence
 #ifdef __UNIX__

@@ -3,8 +3,10 @@
 
 #include "common.hpp"
 #include "FrameRange.hpp"
+#include <filesystem>
+#include <string>
 
-#include <boost/lexical_cast.hpp>
+
 
 #include <iomanip>
 #include <set>
@@ -62,7 +64,7 @@ public:
 	}
 
 #ifndef SWIG
-	Sequence( const boost::filesystem::path& directory, const Sequence& v )
+	Sequence( const std::filesystem::path& directory, const Sequence& v )
 	{
 		operator=( v );
 	}
@@ -212,7 +214,7 @@ public:
 	 * @brief Iterate over files name contained in Sequence and concatenates file name to parentPath
 	 * @param parentFolder
 	 */
-	std::vector<boost::filesystem::path> getAbsoluteFilesPath(boost::filesystem::path const& parentPath) const;
+	std::vector<std::filesystem::path> getAbsoluteFilesPath(std::filesystem::path const& parentPath) const;
 #endif
 
 	std::vector<FrameRange>& getFrameRanges() { return _ranges; }

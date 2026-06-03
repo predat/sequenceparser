@@ -23,7 +23,7 @@ inline std::string Sequence::getFilenameWithPrintfPattern() const
 {
 	std::string paddingStr = "%";
 	if( getFixedPadding() )
-		paddingStr += "0" + boost::lexical_cast<std::string>( getFixedPadding() );
+		paddingStr += "0" + std::to_string( getFixedPadding() );
 	paddingStr += "d";
 	return getPrefix() + paddingStr + getSuffix();
 }

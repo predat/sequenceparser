@@ -3,8 +3,7 @@
 
 #include "common.hpp"
 
-#include <boost/foreach.hpp>
-#include <boost/assert.hpp>
+#include <cassert>
 
 #include <vector>
 #include <iostream>
@@ -27,7 +26,7 @@ public:
 	, last(last)
 	, step(step)
 	{
-		BOOST_ASSERT( step >= 1 );
+		assert( step >= 1 );
 	}
 	inline Time atIndex(Time index) const
 	{
@@ -35,7 +34,7 @@ public:
 	}
 	inline Time getNbFrames() const
 	{
-		BOOST_ASSERT( step >= 1 );
+		assert( step >= 1 );
 		return ((last - first) / step) + 1;
 	}
 	inline bool operator==( const FrameRange& other ) const
