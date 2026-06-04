@@ -1,0 +1,78 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+      - main
+      - feature/remove_boost
+
+  pull_request:
+
+  workflow_dispatch:
+
+jobs:
+  # --------------------------------------------------------------------------
+  # Formatting — no build required, just a dry-run diff against .clang-format
+  # --------------------------------------------------------------------------
+  clang-format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    # Informational only: clang-format output varies between versions, so a
+    # violation must not fail the CI. Review the job log to apply suggestions.
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: Check formatting
+        run: |
+          find src -type f \( -name '*.cpp' -o -name '*.hpp' \) -print0 \
+            | xargs -0 clang-format --dry-run --Werror
+
+  # --------------------------------------------------------------------------
+  # Static analysis — needs a compile_commands.json, so we configure CMake
+  # (but never build) to export it, then run clang-tidy on the .cpp files.
+  # --------------------------------------------------------------------------
+  clang-tidy:
+    name: clang-tidy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y swig ninja-build clang-tidy
+
+      - name: Configure (export compile commands only)
+        run: >
+          cmake
+          -S .
+          -B build
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          -DPython3_EXECUTABLE=${{ steps.setup-python.outputs.python-path }}
+          -DCMAKE_DISABLE_FIND_PACKAGE_Java=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_JNI=ON
+
+      - name: Run clang-tidy
+        run: |
+          find src -type f -name '*.cpp' -print0 \
+            | xargs -0 clang-tidy -p build
