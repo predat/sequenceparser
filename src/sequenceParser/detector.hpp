@@ -4,12 +4,11 @@
 #include "common.hpp"
 #include "Sequence.hpp"
 
-
 namespace sequenceParser {
 
 // TODO: detect Sequences from strings
 //
-//std::vector<Sequence> detectSequences(
+// std::vector<Sequence> detectSequences(
 //	std::vector<std::string>& outNonSequence,
 //	const std::vector<std::string>& names,
 //	const EDetection detectOptions = eDetectionDefault );

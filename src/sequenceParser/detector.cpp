@@ -1,7 +1,3 @@
 #include "detector.hpp"
 
-
-namespace sequenceParser {
-
-
-}
+namespace sequenceParser {}

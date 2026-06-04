@@ -15,97 +15,94 @@ namespace sequenceParser {
  */
 class Item
 {
-public:
-	Item()
-	: _type(eTypeFile)
-	{}
-	
-	Item( const EType type, const std::string& filepath )
-	: _type(type)
+  public:
+    Item()
+      : _type(eTypeFile)
+    {}
+
+    Item(const EType type, const std::string& filepath)
+      : _type(type)
 #ifdef SWIGJAVA
-	, _path(utf8_to_latin1(filepath))
+        ,
+        _path(utf8_to_latin1(filepath))
 #else
-	, _path(filepath)
+        ,
+        _path(filepath)
 #endif
-	{
-	}
+    {}
 
 #ifndef SWIG
-	Item( const EType type, const std::filesystem::path& filepath )
-	: _type(type)
-	, _path(filepath)
-	{
-		assert( type != eTypeSequence );
-	}
-	
-	Item( const Sequence& sequence, const std::filesystem::path& folder )
-	: _type(eTypeSequence)
-	, _path(folder)
-	, _sequence(sequence)
-	{
-		_path /= sequence.getFilenameWithStandardPattern();
-	}
+    Item(const EType type, const std::filesystem::path& filepath)
+      : _type(type),
+        _path(filepath)
+    {
+        assert(type != eTypeSequence);
+    }
+
+    Item(const Sequence& sequence, const std::filesystem::path& folder)
+      : _type(eTypeSequence),
+        _path(folder),
+        _sequence(sequence)
+    {
+        _path /= sequence.getFilenameWithStandardPattern();
+    }
 #endif
 
-	Item( const Sequence& sequence, const std::string& folder )
-	: _type(eTypeSequence)
-	, _path(folder)
-	, _sequence(sequence)
-	{
-		_path /= sequence.getFilenameWithStandardPattern();
-	}
+    Item(const Sequence& sequence, const std::string& folder)
+      : _type(eTypeSequence),
+        _path(folder),
+        _sequence(sequence)
+    {
+        _path /= sequence.getFilenameWithStandardPattern();
+    }
 
-	EType getType() const { return _type; }
+    EType getType() const { return _type; }
 
-	std::string getAbsoluteFilepath() const { return _path.string(); }
-	std::string getFilename() const { return _path.filename().string(); }
-	std::string getFolder() const { return getFolderPath().string(); }
-	
-	/**
-	 * @brief Usefull for sequences items: explode sequence
-	 */
-	std::vector<Item> explode() const;
+    std::string getAbsoluteFilepath() const { return _path.string(); }
+    std::string getFilename() const { return _path.filename().string(); }
+    std::string getFolder() const { return getFolderPath().string(); }
 
-	const Sequence& getSequence() const { return _sequence; }
+    /**
+     * @brief Usefull for sequences items: explode sequence
+     */
+    std::vector<Item> explode() const;
+
+    const Sequence& getSequence() const { return _sequence; }
 
 #ifndef SWIG
-	const std::filesystem::path& getPath() const { return _path; }
-	const std::filesystem::path getFolderPath() const { return _path.parent_path(); }
+    const std::filesystem::path& getPath() const { return _path; }
+    const std::filesystem::path getFolderPath() const { return _path.parent_path(); }
 #endif
 
-	std::string getAbsoluteFirstFilename() const;
-	std::string getFirstFilename() const;
+    std::string getAbsoluteFirstFilename() const;
+    std::string getFirstFilename() const;
 
-	bool operator<( const Item& other ) const
-	{
-		return _path < other._path;
-	}
+    bool operator<(const Item& other) const { return _path < other._path; }
 
-	std::string string() const { return getType() == eTypeSequence ? getSequence().string() : _path.string(); }
+    std::string string() const { return getType() == eTypeSequence ? getSequence().string() : _path.string(); }
 
-private:
-	EType _type;
-	
-	std::filesystem::path _path;
+  private:
+    EType _type;
 
-	Sequence _sequence;
+    std::filesystem::path _path;
+
+    Sequence _sequence;
 };
 
-
 #ifndef SWIG
-EType getTypeFromPath( const std::filesystem::path& path );
+EType getTypeFromPath(const std::filesystem::path& path);
 #endif
 /**
  * @warning The methods checks if the given path corresponds to a link, a file or a folder (in the filesystem).
  * Else the method returns unknown type (it never returns a sequence).
  * @see getTypeFromPath
  */
-EType getTypeFromPath( const std::string& pathStr );
+EType getTypeFromPath(const std::string& pathStr);
 
 #ifndef SWIG
-std::ostream& operator<<( std::ostream& os, const Item& item );
+std::ostream& operator<<(std::ostream& os, const Item& item);
 #endif
 
-}
+}  // namespace sequenceParser
 
 #endif

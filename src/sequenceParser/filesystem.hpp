@@ -10,7 +10,6 @@
 #include <iostream>
 #include <iomanip>
 
-
 namespace sequenceParser {
 
 /**
@@ -19,8 +18,7 @@ namespace sequenceParser {
  * @param[in] pattern: Absolute path of your sequence, like: "/tmp/foo####.jpg"
  * @param[in] accept: patterns to accept in the detection
  */
-bool browseSequence( Sequence& outSequence, const std::string& pattern, const EPattern accept = ePatternDefault );
-
+bool browseSequence(Sequence& outSequence, const std::string& pattern, const EPattern accept = ePatternDefault);
 
 #ifndef SWIG
 /**
@@ -31,36 +29,30 @@ bool browseSequence( Sequence& outSequence, const std::string& pattern, const EP
  *                     For example to limit to jpg files, use "*.jpg".
  * @return A vector of files, sequences and directories.
  */
-std::vector<Item> browse(
-		const std::filesystem::path& directory,
-		const EDetection detectOptions = eDetectionDefault,
-		const std::vector<std::string>& filters = std::vector<std::string>() );
+std::vector<Item> browse(const std::filesystem::path& directory,
+                         const EDetection detectOptions = eDetectionDefault,
+                         const std::vector<std::string>& filters = std::vector<std::string>());
 
 #endif
 
-
-inline std::vector<Item> browse(
-		const std::string& directory,
-		const EDetection detectOptions = eDetectionDefault,
-		const std::vector<std::string>& filters = std::vector<std::string>() )
+inline std::vector<Item> browse(const std::string& directory,
+                                const EDetection detectOptions = eDetectionDefault,
+                                const std::vector<std::string>& filters = std::vector<std::string>())
 {
 #ifdef SWIGJAVA
-	return browse( std::filesystem::path(utf8_to_latin1(directory)), detectOptions, filters );
+    return browse(std::filesystem::path(utf8_to_latin1(directory)), detectOptions, filters);
 #else
-	return browse( std::filesystem::path(directory), detectOptions, filters );
+    return browse(std::filesystem::path(directory), detectOptions, filters);
 #endif
 }
 
-
-inline std::vector<Item> browse(
-		const Item& directory,
-		const EDetection detectOptions = eDetectionDefault,
-		const std::vector<std::string>& filters = std::vector<std::string>() )
+inline std::vector<Item> browse(const Item& directory,
+                                const EDetection detectOptions = eDetectionDefault,
+                                const std::vector<std::string>& filters = std::vector<std::string>())
 {
-	return browse( directory.getPath(), detectOptions, filters );
+    return browse(directory.getPath(), detectOptions, filters);
 }
 
-
-}
+}  // namespace sequenceParser
 
 #endif

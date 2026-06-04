@@ -16,65 +16,49 @@ namespace detail {
  */
 class FileStrings
 {
-public:
-	typedef FileStrings This;
-	typedef std::vector<std::string> Vec;
+  public:
+    typedef FileStrings This;
+    typedef std::vector<std::string> Vec;
 
-public:
+  public:
+    Vec& getId() { return _id; }
 
-	Vec& getId()
-	{
-		return _id;
-	}
+    const Vec& getId() const { return _id; }
 
-	const Vec& getId() const
-	{
-		return _id;
-	}
+    void clear() { _id.clear(); }
 
-	void clear()
-	{
-		_id.clear();
-	}
+    bool operator==(const This& v) const
+    {
+        if (_id.size() != v._id.size())
+        {
+            return false;
+        }
+        for (Vec::const_iterator i = _id.begin(), iEnd = _id.end(), vi = v._id.begin(); i != iEnd; ++i, ++vi)
+        {
+            if (*i != *vi)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 
-	bool operator==( const This& v ) const
-	{
-		if( _id.size() != v._id.size() )
-		{
-			return false;
-		}
-		for( Vec::const_iterator i = _id.begin(), iEnd = _id.end(), vi = v._id.begin(); i != iEnd; ++i, ++vi )
-		{
-			if( *i != *vi )
-			{
-				return false;
-			}
-		}
-		return true;
-	}
+    const std::string& operator[](const std::size_t i) const { return _id[i]; }
 
-	const std::string& operator[]( const std::size_t i ) const
-	{
-		return _id[i];
-	}
+    std::size_t getHash() const;
 
-	std::size_t getHash() const;
+    friend std::ostream& operator<<(std::ostream& os, const This& p);
 
-	friend std::ostream& operator<<( std::ostream& os, const This& p );
-
-private:
-	Vec _id;
+  private:
+    Vec _id;
 };
 
 struct SeqIdHash
 {
-	std::size_t operator()(const FileStrings & p ) const
-	{
-		return p.getHash();
-	}
+    std::size_t operator()(const FileStrings& p) const { return p.getHash(); }
 };
 
-}
-}
+}  // namespace detail
+}  // namespace sequenceParser
 
 #endif
