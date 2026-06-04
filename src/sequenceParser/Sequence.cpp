@@ -8,6 +8,7 @@
 #include <iterator>
 #include <ostream>
 #include <cassert>
+#include <sstream>
 
 namespace sequenceParser {
 
