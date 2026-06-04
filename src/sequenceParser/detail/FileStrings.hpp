@@ -1,9 +1,6 @@
 #ifndef _SEQUENCE_PARSER_FILE_STRINGS_HPP_
 #define _SEQUENCE_PARSER_FILE_STRINGS_HPP_
 
-#include <filesystem>
-#include <functional>
-
 #include <vector>
 #include <iostream>
 
@@ -27,21 +24,7 @@ class FileStrings
 
     void clear() { _id.clear(); }
 
-    bool operator==(const This& v) const
-    {
-        if (_id.size() != v._id.size())
-        {
-            return false;
-        }
-        for (Vec::const_iterator i = _id.begin(), iEnd = _id.end(), vi = v._id.begin(); i != iEnd; ++i, ++vi)
-        {
-            if (*i != *vi)
-            {
-                return false;
-            }
-        }
-        return true;
-    }
+    bool operator==(const This& v) const { return _id == v._id; }
 
     const std::string& operator[](const std::size_t i) const { return _id[i]; }
 
