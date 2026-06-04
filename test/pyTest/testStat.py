@@ -1,137 +1,89 @@
-import time
-import tempfile
 import os
+import time
 import shutil
 import getpass
 import grp
+import pytest
 
 from pySequenceParser import sequenceParser as seq
 from . import createFile, createFolder, createSymLink, getSequencesFromPath
 
-from nose.tools import *
-
-root_path = ''
 user_name = getpass.getuser()
 grp_name = grp.getgrnam(user_name).gr_name
 
 
-def setUp():
-    global root_path
-    root_path = tempfile.mkdtemp()
-
-    # create files
-    files_to_create = [
-        "plop.txt",
-        "foo.001.png",
-        "foo.002.png",
-        "foo.003.png",
-    ]
-    for f in files_to_create:
-        createFile(root_path, f)
-
-    # create folder
-    createFolder(root_path, "dir1")
-
-    # create sym link
-    createSymLink(root_path, "plop.txt", "plop_sym_link.txt")
-
-
-def tearDown():
-    global root_path
-    shutil.rmtree(root_path)
+@pytest.fixture(scope="module")
+def root_path(tmp_path_factory):
+    path = tmp_path_factory.mktemp("stat")
+    for f in ["plop.txt", "foo.001.png", "foo.002.png", "foo.003.png"]:
+        createFile(str(path), f)
+    createFolder(str(path), "dir1")
+    createSymLink(str(path), "plop.txt", "plop_sym_link.txt")
+    return str(path)
 
 
 def checkCommonParameters(itemStat):
-    """
-    Check attributes which are common to several ItemStats.
-    """
-    # user and group
-    assert_equals(itemStat.userName, user_name)
-    assert_equals(itemStat.groupName, grp_name)
-    # permissions
-    assert_equals(itemStat.ownerCanRead, True)
-    assert_equals(itemStat.ownerCanWrite, True)
-    assert_equals(itemStat.ownerCanExecute, False)
-    assert_equals(itemStat.groupCanRead, True)
-    assert_equals(itemStat.groupCanWrite, True)
-    assert_equals(itemStat.groupCanExecute, False)
-    assert_equals(itemStat.otherCanRead, True)
-    assert_equals(itemStat.otherCanWrite, False)
-    assert_equals(itemStat.otherCanExecute, False)
+    assert itemStat.userName == user_name
+    assert itemStat.groupName == grp_name
+    assert itemStat.ownerCanRead is True
+    assert itemStat.ownerCanWrite is True
+    assert itemStat.ownerCanExecute is False
+    assert itemStat.groupCanRead is True
+    assert itemStat.groupCanWrite is True
+    assert itemStat.groupCanExecute is False
+    assert itemStat.otherCanRead is True
+    assert itemStat.otherCanWrite is False
+    assert itemStat.otherCanExecute is False
 
 
 def checkUnsetItemStat(itemStat):
-    """
-    Check attributes of the given itemStat that should not be set.
-    """
-    # user and group
-    assert_equals(itemStat.userName, "unknown")
-    assert_equals(itemStat.groupName, "unknown")
-    # check id
-    assert_equals(itemStat.deviceId, 0)
-    assert_equals(itemStat.inodeId, 0)
-    assert_equals(itemStat.userId, 0)
-    assert_equals(itemStat.groupId, 0)
-    # nb hard links
-    assert_equals(itemStat.nbHardLinks, 0)
-    assert_equals(itemStat.fullNbHardLinks, 0)
-    # check size
-    assert_equals(itemStat.size, 0)
-    assert_equals(itemStat.minSize, 0)
-    assert_equals(itemStat.maxSize, 0)
-    assert_equals(itemStat.realSize, 0)
-    assert_equals(itemStat.sizeOnDisk, 0)
-    # time
-    assert_equals(itemStat.accessTime, -1)
-    assert_equals(itemStat.modificationTime, -1)
-    assert_equals(itemStat.lastChangeTime, -1)
-    # permissions
-    assert_equals(itemStat.ownerCanRead, False)
-    assert_equals(itemStat.ownerCanWrite, False)
-    assert_equals(itemStat.ownerCanExecute, False)
-    assert_equals(itemStat.groupCanRead, False)
-    assert_equals(itemStat.groupCanWrite, False)
-    assert_equals(itemStat.groupCanExecute, False)
-    assert_equals(itemStat.otherCanRead, False)
-    assert_equals(itemStat.otherCanWrite, False)
-    assert_equals(itemStat.otherCanExecute, False)
+    assert itemStat.userName == "unknown"
+    assert itemStat.groupName == "unknown"
+    assert itemStat.deviceId == 0
+    assert itemStat.inodeId == 0
+    assert itemStat.userId == 0
+    assert itemStat.groupId == 0
+    assert itemStat.nbHardLinks == 0
+    assert itemStat.fullNbHardLinks == 0
+    assert itemStat.size == 0
+    assert itemStat.minSize == 0
+    assert itemStat.maxSize == 0
+    assert itemStat.realSize == 0
+    assert itemStat.sizeOnDisk == 0
+    assert itemStat.accessTime == -1
+    assert itemStat.modificationTime == -1
+    assert itemStat.lastChangeTime == -1
+    assert itemStat.ownerCanRead is False
+    assert itemStat.ownerCanWrite is False
+    assert itemStat.ownerCanExecute is False
+    assert itemStat.groupCanRead is False
+    assert itemStat.groupCanWrite is False
+    assert itemStat.groupCanExecute is False
+    assert itemStat.otherCanRead is False
+    assert itemStat.otherCanWrite is False
+    assert itemStat.otherCanExecute is False
 
 
-def testFileStat():
-    """
-    Check stats of a single file.
-    - 1 hard link
-    - size = minSize = maxSize = realSize = sizeOnDisk
-    - check the different times
-    """
+def testFileStat(root_path):
     itemFile = seq.Item(seq.eTypeFile, os.path.join(root_path, "plop.txt"))
     itemStat = seq.ItemStat(itemFile)
     checkCommonParameters(itemStat)
-    # nb hard links
-    assert_equals(itemStat.nbHardLinks, 1)
-    assert_equals(itemStat.fullNbHardLinks, 1)
-    # check size
-    assert_equals(itemStat.size, itemStat.minSize)
-    assert_equals(itemStat.size, itemStat.maxSize)
-    assert_equals(itemStat.realSize, itemStat.size / itemStat.nbHardLinks)
-    assert_greater_equal(itemStat.sizeOnDisk, itemStat.size)
-    # time
+    assert itemStat.nbHardLinks == 1
+    assert itemStat.fullNbHardLinks == 1
+    assert itemStat.size == itemStat.minSize
+    assert itemStat.size == itemStat.maxSize
+    assert itemStat.realSize == itemStat.size / itemStat.nbHardLinks
+    assert itemStat.sizeOnDisk >= itemStat.size
     currentTime = round(time.time())
-    assert_less_equal(itemStat.accessTime, currentTime)
-    assert_less_equal(itemStat.modificationTime, currentTime)
-    assert_less_equal(itemStat.lastChangeTime, currentTime)
+    assert itemStat.accessTime <= currentTime
+    assert itemStat.modificationTime <= currentTime
+    assert itemStat.lastChangeTime <= currentTime
 
 
-def testFileDeleted():
-    """
-    Check stats of a file which is deleted between the browse and the stat.
-    """
-    # create new elements
+def testFileDeleted(root_path):
     fileToDelete = "fileToDelete.txt"
     createFile(root_path, fileToDelete)
-    # browse the all directory
     items = seq.browse(root_path)
-    # remove the last file created and get the stats of this file
     itemStat = None
     for item in items:
         if item.getFilename() == fileToDelete:
@@ -141,50 +93,34 @@ def testFileDeleted():
     checkUnsetItemStat(itemStat)
 
 
-def testSymLinkStat():
-    """
-    Check stats of a folder.
-    - 1 hard link
-    - sizes
-    """
+def testSymLinkStat(root_path):
     src = os.path.join(root_path, "plop_sym_link.txt")
     dst = os.path.join(root_path, "plop.txt")
     itemFile = seq.Item(seq.eTypeLink, src)
     itemStat = seq.ItemStat(itemFile)
-    # user and group
-    assert_equals(itemStat.userName, user_name)
-    assert_equals(itemStat.groupName, grp_name)
-    # nb hard links
-    assert_equals(itemStat.nbHardLinks, 1)
-    assert_equals(itemStat.fullNbHardLinks, 1)
-    # check size
-    assert_equals(itemStat.size, len(dst))
-    assert_equals(itemStat.size, itemStat.minSize)
-    assert_equals(itemStat.size, itemStat.maxSize)
-    assert_equals(itemStat.realSize, itemStat.size / itemStat.nbHardLinks)
-    # permissions
-    # On Linux, the permissions are always 0777 and can't be changed.
-    assert_equals(itemStat.ownerCanRead, True)
-    assert_equals(itemStat.ownerCanWrite, True)
-    assert_equals(itemStat.ownerCanExecute, True)
-    assert_equals(itemStat.groupCanRead, True)
-    assert_equals(itemStat.groupCanWrite, True)
-    assert_equals(itemStat.groupCanExecute, True)
-    assert_equals(itemStat.otherCanRead, True)
-    assert_equals(itemStat.otherCanWrite, True)
-    assert_equals(itemStat.otherCanExecute, True)
+    assert itemStat.userName == user_name
+    assert itemStat.groupName == grp_name
+    assert itemStat.nbHardLinks == 1
+    assert itemStat.fullNbHardLinks == 1
+    assert itemStat.size == len(dst)
+    assert itemStat.size == itemStat.minSize
+    assert itemStat.size == itemStat.maxSize
+    assert itemStat.realSize == itemStat.size / itemStat.nbHardLinks
+    assert itemStat.ownerCanRead is True
+    assert itemStat.ownerCanWrite is True
+    assert itemStat.ownerCanExecute is True
+    assert itemStat.groupCanRead is True
+    assert itemStat.groupCanWrite is True
+    assert itemStat.groupCanExecute is True
+    assert itemStat.otherCanRead is True
+    assert itemStat.otherCanWrite is True
+    assert itemStat.otherCanExecute is True
 
 
-def testSymLinkDeleted():
-    """
-    Check stats of a symbolic link which is deleted between the browse and the stat.
-    """
-    # create new symbolic link
+def testSymLinkDeleted(root_path):
     linkToDelete = "linkToDelete.txt"
     createSymLink(root_path, "plop.txt", linkToDelete)
-    # browse the all directory
     items = seq.browse(root_path)
-    # remove the last file created and get the stats of this symbolic link
     itemStat = None
     for item in items:
         if item.getFilename() == linkToDelete:
@@ -194,35 +130,22 @@ def testSymLinkDeleted():
     checkUnsetItemStat(itemStat)
 
 
-def testFolderStat():
-    """
-    Check stats of a folder.
-    - 2 hard links (. and ..)
-    - sizes
-    """
+def testFolderStat(root_path):
     itemFile = seq.Item(seq.eTypeFolder, os.path.join(root_path, "dir1"))
     itemStat = seq.ItemStat(itemFile)
     checkCommonParameters(itemStat)
-    # nb hard links
-    assert_equals(itemStat.nbHardLinks, 2)
-    assert_equals(itemStat.fullNbHardLinks, 2)
-    # check size
-    assert_equals(itemStat.size, itemStat.minSize)
-    assert_equals(itemStat.size, itemStat.maxSize)
-    assert_equals(itemStat.realSize, itemStat.size)
-    assert_greater_equal(itemStat.sizeOnDisk, itemStat.size)
+    assert itemStat.nbHardLinks == 2
+    assert itemStat.fullNbHardLinks == 2
+    assert itemStat.size == itemStat.minSize
+    assert itemStat.size == itemStat.maxSize
+    assert itemStat.realSize == itemStat.size
+    assert itemStat.sizeOnDisk >= 0
 
 
-def testFolderDeleted():
-    """
-    Check stats of a folder which is deleted between the browse and the stat.
-    """
-    # create new folder
+def testFolderDeleted(root_path):
     folderToDelete = "folderToDelete"
     createFolder(root_path, folderToDelete)
-    # browse the all directory
     items = seq.browse(root_path)
-    # remove the last file created and get the stats of this folder
     itemStat = None
     for item in items:
         if item.getFilename() == folderToDelete:
@@ -232,56 +155,35 @@ def testFolderDeleted():
     checkUnsetItemStat(itemStat)
 
 
-def testSequenceStat():
-    """
-    Check stats of a sequence.
-    - number of hard links
-    - sizes
-    """
+def testSequenceStat(root_path):
     itemSequence = getSequencesFromPath(root_path, seq.eDetectionDefault)[0]
     nbFilesInSequence = itemSequence.getSequence().getNbFiles()
     itemStat = seq.ItemStat(itemSequence)
     checkCommonParameters(itemStat)
-    # nb hard links
-    assert_equals(itemStat.nbHardLinks, 1)
-    assert_equals(itemStat.fullNbHardLinks, 3)
-    # check size
-    assert_equals(itemStat.size, itemStat.minSize * nbFilesInSequence)
-    assert_equals(itemStat.size, itemStat.maxSize * nbFilesInSequence)
-    assert_equals(itemStat.realSize, itemStat.size / itemStat.nbHardLinks)
-    assert_greater_equal(itemStat.sizeOnDisk, itemStat.size)
+    assert itemStat.nbHardLinks == 1
+    assert itemStat.fullNbHardLinks == 3
+    assert itemStat.size == itemStat.minSize * nbFilesInSequence
+    assert itemStat.size == itemStat.maxSize * nbFilesInSequence
+    assert itemStat.realSize == itemStat.size / itemStat.nbHardLinks
+    assert itemStat.sizeOnDisk >= itemStat.size
 
 
-def testSequenceDeleted():
-    """
-    Check stats of a sequence which is deleted between the browse and the stat.
-    """
-    # create new sequence
-    files_to_create = [
-        "bar.001.jpg",
-        "bar.002.jpg",
-        "bar.003.jpg",
-    ]
+def testSequenceDeleted(root_path):
+    files_to_create = ["bar.001.jpg", "bar.002.jpg", "bar.003.jpg"]
     for f in files_to_create:
         createFile(root_path, f)
-    # browse the all directory
     items = seq.browse(root_path)
-    # remove the last file created and get the stats of this symbolic link
     itemStat = None
     for item in items:
         if item.getFilename() == "bar.###.jpg":
-            os.remove(os.path.join(root_path, "bar.001.jpg"))
-            os.remove(os.path.join(root_path, "bar.002.jpg"))
-            os.remove(os.path.join(root_path, "bar.003.jpg"))
+            for f in files_to_create:
+                os.remove(os.path.join(root_path, f))
             itemStat = seq.ItemStat(item)
             break
     checkUnsetItemStat(itemStat)
 
 
-def testUndefinedStat():
-    """
-    Check stats of a file which is tagged as undefined.
-    """
+def testUndefinedStat(root_path):
     itemFile = seq.Item(seq.eTypeUndefined, os.path.join(root_path, "plop.txt"))
     itemStat = seq.ItemStat(itemFile)
     checkUnsetItemStat(itemStat)

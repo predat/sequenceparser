@@ -1,114 +1,75 @@
-import tempfile
-import shutil
+import pytest
 
 from pySequenceParser import sequenceParser as seq
 from . import createFile
 
-from nose.tools import *
 
-root_tmpTestSequence = ''
-path_root = ''
+@pytest.fixture(scope="module")
+def paths(tmp_path_factory):
+    """Create the full directory tree used by all file-detection tests.
 
-path_trash = ''
-path_dpx = ''
-path_negative = ''
-
-path_film = ''
-path_noStrictPadding = ''
-path_strictPadding = ''
-
-
-def setUp():
+    Hierarchy mirrors the original test setup:
+      root/
+        sub/          ← one sub-directory at the top level
+          film/
+            strict/
+            no_strict/
+          trash/
+            plop.txt
+            dpx/
+              img.dpx
+              negative/
     """
-    Create temporary folders and sequences.
-    """
-    global root_tmpTestSequence
-    global path_root
+    root = tmp_path_factory.mktemp("filedetection")
+    sub = root / "sub"
+    sub.mkdir()
 
-    global path_trash
-    global path_dpx
-    global path_negative
+    film = sub / "film"
+    film.mkdir()
 
-    global path_film
-    global path_noStrictPadding
-    global path_strictPadding
+    strict = film / "strict"
+    strict.mkdir()
+    for i in range(100):
+        createFile(str(strict), f'img.{i:04d}.dpx')
+        createFile(str(strict), f'.img.{i:04d}.dpx')
+        createFile(str(strict), f'img.{i:04d}.jpg')
+        createFile(str(strict), f'imgBroken.{i:04d}.jpg')
 
-    root_tmpTestSequence = tempfile.mkdtemp('tmpTestSequence')
-    path_root = tempfile.mkdtemp('root', dir=root_tmpTestSequence)
+    no_strict = film / "no_strict"
+    no_strict.mkdir()
+    for i in range(100):
+        createFile(str(no_strict), f'img.{i:04d}.dpx')
+        createFile(str(no_strict), f'.img.{i:04d}.dpx')
+        createFile(str(no_strict), f'img.{i:04d}.jpg')
+        createFile(str(no_strict), f'imgBroken.{i:04d}.jpg')
 
-    path_film = tempfile.mkdtemp('film', dir=path_root)
-    path_strictPadding = tempfile.mkdtemp('strictPadding', dir=path_film)
-    # create sequence img.%04d.dpx
-    for i in range(0, 100):
-        padding = '%04d' % i
-        createFile(path_strictPadding, 'img.' + str(padding) + '.dpx')
-    # create sequence .img.%04d.dpx
-    for i in range(0, 100):
-        padding = '%04d' % i
-        createFile(path_strictPadding, '.img.' + str(padding) + '.dpx')
-    # create sequence img.%04d.jpg
-    for i in range(0, 100):
-        padding = '%04d' % i
-        createFile(path_strictPadding, 'img.' + str(padding) + '.jpg')
-    # create sequence imgBroken.%04d.jpg with holes
-    for i in range(0, 100):
-        padding = '%04d' % i
-        createFile(path_strictPadding, 'imgBroken.' + str(padding) + '.jpg')
-        if i == 2: i = 9
-        if i == 55: i = 99
+    trash = sub / "trash"
+    trash.mkdir()
+    createFile(str(trash), 'plop.txt')
 
-    path_noStrictPadding = tempfile.mkdtemp('noStrictPadding', dir=path_film)
-    # create sequence img.%04d.dpx
-    for i in range(0, 100):
-        padding = '%04d' % i
-        createFile(path_noStrictPadding, 'img.' + str(padding) + '.dpx')
-    # create sequence .img.%04d.dpx
-    for i in range(0, 100):
-        padding = '%04d' % i
-        createFile(path_noStrictPadding, '.img.' + str(padding) + '.dpx')
-    # create sequence img.%04d.jpg
-    for i in range(0, 100):
-        padding = '%04d' % i
-        createFile(path_noStrictPadding, 'img.' + str(padding) + '.jpg')
-    # create sequence imgBroken.%04d.jpg with holes
-    for i in range(0, 100):
-        padding = '%04d' % i
-        createFile(path_noStrictPadding, 'imgBroken.' + str(padding) + '.jpg')
-        if i == 2: i = 9
-        if i == 55: i = 99
+    dpx = trash / "dpx"
+    dpx.mkdir()
+    createFile(str(dpx), 'img.dpx')
 
-    # create file plop.txt
-    path_trash = tempfile.mkdtemp('trash', dir=path_root)
-    createFile(path_trash, 'plop.txt')
+    negative = dpx / "negative"
+    negative.mkdir()
+    for i in range(100):
+        createFile(str(negative), f'img.-{i:04d}.dpx')
+        createFile(str(negative), f'seqTest.-{i:04d}.dpx')
 
-    # create file img.dpx
-    path_dpx = tempfile.mkdtemp('dpx', dir=path_trash)
-    createFile(path_dpx, 'img.dpx')
-
-    path_negative = tempfile.mkdtemp('negative', dir=path_dpx)
-    # create sequence img.-%04d.dpx
-    for i in range(0, 100):
-        padding = '%04d' % i
-        createFile(path_negative, 'img.-' + str(padding) + '.dpx')
-    # create sequence seqTest.-%04d.dpx
-    for i in range(0, 100):
-        padding = '%04d' % i
-        createFile(path_negative, 'seqTest.-' + str(padding) + '.dpx')
-
-
-def tearDown():
-    """
-    Remove temporary folders and files.
-    """
-    global root_tmpTestSequence
-    shutil.rmtree(root_tmpTestSequence)
+    return {
+        "root": str(root),
+        "sub": str(sub),
+        "film": str(film),
+        "strict": str(strict),
+        "no_strict": str(no_strict),
+        "trash": str(trash),
+        "dpx": str(dpx),
+        "negative": str(negative),
+    }
 
 
 def checkItemsInDirectory(path, detectionOptions, nbFolders, nbFiles, nbSequences, nbFileObjects, filters=[]):
-    """
-    Browse a folder with the given parameters.
-    Check the number of objects of each types found.
-    """
     listFileObject = []
     listFolder = []
     listFile = []
@@ -126,18 +87,13 @@ def checkItemsInDirectory(path, detectionOptions, nbFolders, nbFiles, nbSequence
         if itemType == seq.eTypeSequence:
             listSequence.append(item)
 
-    assert_equals(len(listFileObject), nbFileObjects)
-    assert_equals(len(listFolder), nbFolders)
-    assert_equals(len(listFile), nbFiles)
-    assert_equals(len(listSequence), nbSequences)
+    assert len(listFileObject) == nbFileObjects
+    assert len(listFolder) == nbFolders
+    assert len(listFile) == nbFiles
+    assert len(listSequence) == nbSequences
 
 
 def checkFirstSequence(path, detectionOptions, minValue, maxValue, filters):
-    """
-    Browse a folder with the given parameters.
-    Check if at least one sequence is found.
-    Check the first and last frame of this sequence.
-    """
     listSequence = []
 
     items = seq.browse(path, detectionOptions, filters)
@@ -145,172 +101,160 @@ def checkFirstSequence(path, detectionOptions, minValue, maxValue, filters):
         if item.getType() == seq.eTypeSequence:
             listSequence.append(item)
 
-    assert_greater(len(listSequence), 0)
+    assert len(listSequence) > 0
 
-    # first sequence
     sequence = listSequence[0].getSequence()
-    assert_equals(sequence.getFirstTime(), minValue)
-    assert_equals(sequence.getLastTime(), maxValue)
+    assert sequence.getFirstTime() == minValue
+    assert sequence.getLastTime() == maxValue
 
 
-def testFolder():
-    """
-    Check detection of folders.
-    """
-    # check folder
-    checkItemsInDirectory(root_tmpTestSequence, seq.eDetectionDefault, 1, 0, 0, 1)
-    checkItemsInDirectory(path_root, seq.eDetectionDefault, 2, 0, 0, 2)
-    checkItemsInDirectory(path_trash, seq.eDetectionDefault, 1, 1, 0, 2)
-    checkItemsInDirectory(path_dpx, seq.eDetectionDefault, 1, 1, 0, 2)
-    checkItemsInDirectory(path_negative, seq.eDetectionDefault, 0, 0, 2, 2)
+def testFolder(paths):
+    checkItemsInDirectory(paths["root"], seq.eDetectionDefault, 1, 0, 0, 1)
+    checkItemsInDirectory(paths["sub"], seq.eDetectionDefault, 2, 0, 0, 2)
+    checkItemsInDirectory(paths["trash"], seq.eDetectionDefault, 1, 1, 0, 2)
+    checkItemsInDirectory(paths["dpx"], seq.eDetectionDefault, 1, 1, 0, 2)
+    checkItemsInDirectory(paths["negative"], seq.eDetectionDefault, 0, 0, 2, 2)
 
-def testNegativeSequences():
-    """
-    Check detection of negative sequences.
-    """
-    checkItemsInDirectory(path_negative, seq.eDetectionDefault, 0, 0, 0, 0, ['img.####.dpx'])
-    checkItemsInDirectory(path_negative, seq.eDetectionDefault, 0, 0, 0, 0, ['img.#####.dpx'])
-    checkItemsInDirectory(path_negative, seq.eDetectionDefault, 0, 0, 1, 1, ['img.-####.dpx'])
-    checkFirstSequence(path_negative, seq.eDetectionDefault, 0, 99, ['img.-####.dpx'])
-    checkItemsInDirectory(path_negative, seq.eDetectionDefault, 0, 0, 0, 0, ['seqTest.@.dpx'])
-    checkItemsInDirectory(path_negative, seq.eDetectionDefault, 0, 0, 1, 1, ['seqTest.-@.dpx'])
-    checkFirstSequence(path_negative, seq.eDetectionDefault, 0, 99, ['seqTest.-@.dpx'])
 
-    checkItemsInDirectory(path_negative, seq.eDetectionNegative | seq.eDetectionSequenceNeedAtLeastTwoFiles, 0, 0, 2, 2)
+def testNegativeSequences(paths):
+    negative = paths["negative"]
+    checkItemsInDirectory(negative, seq.eDetectionDefault, 0, 0, 0, 0, ['img.####.dpx'])
+    checkItemsInDirectory(negative, seq.eDetectionDefault, 0, 0, 0, 0, ['img.#####.dpx'])
+    checkItemsInDirectory(negative, seq.eDetectionDefault, 0, 0, 1, 1, ['img.-####.dpx'])
+    checkFirstSequence(negative, seq.eDetectionDefault, 0, 99, ['img.-####.dpx'])
+    checkItemsInDirectory(negative, seq.eDetectionDefault, 0, 0, 0, 0, ['seqTest.@.dpx'])
+    checkItemsInDirectory(negative, seq.eDetectionDefault, 0, 0, 1, 1, ['seqTest.-@.dpx'])
+    checkFirstSequence(negative, seq.eDetectionDefault, 0, 99, ['seqTest.-@.dpx'])
 
-    checkItemsInDirectory(path_negative, seq.eDetectionNegative, 0, 0, 1, 1, ['seqTest.@.dpx'])
-    checkFirstSequence(path_negative, seq.eDetectionNegative, -99, -0, ['seqTest.@.dpx'])
-    
-    checkItemsInDirectory(path_negative, seq.eDetectionNegative, 0, 0, 1, 1, ['seqTest.-@.dpx'])
-    checkFirstSequence(path_negative, seq.eDetectionNegative, -99, -0, ['seqTest.-@.dpx'])
+    checkItemsInDirectory(negative, seq.eDetectionNegative | seq.eDetectionSequenceNeedAtLeastTwoFiles, 0, 0, 2, 2)
 
-    checkItemsInDirectory(path_negative, seq.eDetectionNegative, 0, 0, 0, 0, ['img.#### .dpx'])
-    checkItemsInDirectory(path_negative, seq.eDetectionNegative, 0, 0, 1, 1, ['img.####.dpx'])
-    checkItemsInDirectory(path_negative, seq.eDetectionNegative, 0, 0, 0, 0, ['img.#####.dpx'])
-    checkItemsInDirectory(path_negative, seq.eDetectionNegative, 0, 0, 1, 1, ['img.-####.dpx'])
-    checkFirstSequence(path_negative, seq.eDetectionNegative, -99, 0, ['img.-####.dpx'])
+    checkItemsInDirectory(negative, seq.eDetectionNegative, 0, 0, 1, 1, ['seqTest.@.dpx'])
+    checkFirstSequence(negative, seq.eDetectionNegative, -99, -0, ['seqTest.@.dpx'])
 
-def testStrictPadding():
-    """
-    Check detection sequences of strict padding.
-    """
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 3, 3)
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 4, 4)
+    checkItemsInDirectory(negative, seq.eDetectionNegative, 0, 0, 1, 1, ['seqTest.-@.dpx'])
+    checkFirstSequence(negative, seq.eDetectionNegative, -99, -0, ['seqTest.-@.dpx'])
 
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['img.####.dpx'])
-#    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 1, 0, 1, ['img.0050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['*.0050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['*0050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['???.0050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['????0050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['*.####.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['*.@.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['???.####.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['???.@.dpx'])
+    checkItemsInDirectory(negative, seq.eDetectionNegative, 0, 0, 0, 0, ['img.#### .dpx'])
+    checkItemsInDirectory(negative, seq.eDetectionNegative, 0, 0, 1, 1, ['img.####.dpx'])
+    checkItemsInDirectory(negative, seq.eDetectionNegative, 0, 0, 0, 0, ['img.#####.dpx'])
+    checkItemsInDirectory(negative, seq.eDetectionNegative, 0, 0, 1, 1, ['img.-####.dpx'])
+    checkFirstSequence(negative, seq.eDetectionNegative, -99, 0, ['img.-####.dpx'])
 
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionSequenceNeedAtLeastTwoFiles | seq.eDetectionIgnoreDotFile, 0, 1, 0, 1, ['*.0050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionSequenceNeedAtLeastTwoFiles | seq.eDetectionIgnoreDotFile, 0, 1, 0, 1, ['*0050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionSequenceNeedAtLeastTwoFiles, 0, 1, 0, 1, ['???.0050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionSequenceNeedAtLeastTwoFiles, 0, 1, 0, 1, ['????0050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionSequenceNeedAtLeastTwoFiles | seq.eDetectionIgnoreDotFile, 0, 0, 1, 1, ['*.####.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionSequenceNeedAtLeastTwoFiles | seq.eDetectionIgnoreDotFile, 0, 0, 1, 1, ['*.@.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionSequenceNeedAtLeastTwoFiles, 0, 0, 1, 1, ['???.####.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionSequenceNeedAtLeastTwoFiles, 0, 0, 1, 1, ['???.@.dpx'])
 
-#    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 1, 0, 1, ['img.0050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['img.50.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['img.50.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['img.0500.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['img.0500.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['img.000050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['img.000050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['img.####.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['img.####.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['img.###.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['img.###.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['img.#####.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['img.#####.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['img.%04d.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['img.%04d.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['img.%03d.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['img.%03d.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['img.%05d.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['img.%05d.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['img.@.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['img.@.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.0050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['.img.0050.dpx']) # return sequence
+def testStrictPadding(paths):
+    strict = paths["strict"]
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 3, 3)
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 4, 4)
 
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.50.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['.img.50.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.0500.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['.img.0500.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.000050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['.img.000050.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.####.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['.img.####.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.###.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['.img.###.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.#####.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['.img.#####.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.%04d.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['.img.%04d.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.%03d.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['.img.%03d.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.%05d.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['.img.%05d.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.@.dpx'])
-    checkItemsInDirectory(path_strictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['.img.@.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 1, 1, ['img.####.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 1, 1, ['*.0050.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 1, 1, ['*0050.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 1, 1, ['???.0050.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 1, 1, ['????0050.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 1, 1, ['*.####.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 1, 1, ['*.@.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 1, 1, ['???.####.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 1, 1, ['???.@.dpx'])
 
-def testNoStrictPadding():
-    """
-    Check detection sequences of no strict padding.
-    """
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 3, 3)
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 4, 4)
+    checkItemsInDirectory(strict, seq.eDetectionSequenceNeedAtLeastTwoFiles | seq.eDetectionIgnoreDotFile, 0, 1, 0, 1, ['*.0050.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionSequenceNeedAtLeastTwoFiles | seq.eDetectionIgnoreDotFile, 0, 1, 0, 1, ['*0050.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionSequenceNeedAtLeastTwoFiles, 0, 1, 0, 1, ['???.0050.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionSequenceNeedAtLeastTwoFiles, 0, 1, 0, 1, ['????0050.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionSequenceNeedAtLeastTwoFiles | seq.eDetectionIgnoreDotFile, 0, 0, 1, 1, ['*.####.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionSequenceNeedAtLeastTwoFiles | seq.eDetectionIgnoreDotFile, 0, 0, 1, 1, ['*.@.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionSequenceNeedAtLeastTwoFiles, 0, 0, 1, 1, ['???.####.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionSequenceNeedAtLeastTwoFiles, 0, 0, 1, 1, ['???.@.dpx'])
 
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['img.0050.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['img.0050.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['img.50.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['img.50.dpx'])
-#    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['img.0500.dpx'])
-#    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['img.0500.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['img.0050.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['img.0050.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['img.####.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['img.####.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['img.###.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['img.###.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['img.#####.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['img.#####.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['img.%04d.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['img.%04d.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['img.%05d.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['img.%05d.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['img.%03d.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['img.%03d.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 1, 1, ['img.@.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['img.@.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['img.50.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['img.50.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 1, 1, ['img.0500.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['img.0500.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['img.000050.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['img.000050.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 1, 1, ['img.####.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 1, 1, ['img.####.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['img.###.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['img.###.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['img.#####.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['img.#####.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 1, 1, ['img.%04d.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 1, 1, ['img.%04d.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['img.%03d.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['img.%03d.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['img.%05d.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['img.%05d.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 1, 1, ['img.@.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 1, 1, ['img.@.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.0050.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 1, 1, ['.img.0050.dpx'])
 
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.0050.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['.img.0050.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.50.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['.img.50.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.0500.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['.img.0500.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.0050.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['.img.0050.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.####.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['.img.####.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.###.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['.img.###.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.#####.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['.img.#####.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.%04d.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['.img.%04d.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.%05d.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['.img.%05d.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.%03d.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 0, 0, ['.img.%03d.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.@.dpx'])
-    checkItemsInDirectory(path_noStrictPadding, seq.eDetectionNone, 0, 0, 1, 1, ['.img.@.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.50.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['.img.50.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.0500.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['.img.0500.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.000050.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['.img.000050.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.####.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 1, 1, ['.img.####.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.###.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['.img.###.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.#####.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['.img.#####.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.%04d.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 1, 1, ['.img.%04d.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.%03d.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['.img.%03d.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.%05d.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 0, 0, ['.img.%05d.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.@.dpx'])
+    checkItemsInDirectory(strict, seq.eDetectionNone, 0, 0, 1, 1, ['.img.@.dpx'])
+
+
+def testNoStrictPadding(paths):
+    no_strict = paths["no_strict"]
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 3, 3)
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 4, 4)
+
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 1, 1, ['img.0050.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 1, 1, ['img.0050.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['img.50.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 0, 0, ['img.50.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 1, 1, ['img.0050.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 1, 1, ['img.0050.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 1, 1, ['img.####.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 1, 1, ['img.####.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['img.###.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 0, 0, ['img.###.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['img.#####.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 0, 0, ['img.#####.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 1, 1, ['img.%04d.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 1, 1, ['img.%04d.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['img.%05d.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 0, 0, ['img.%05d.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['img.%03d.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 0, 0, ['img.%03d.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 1, 1, ['img.@.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 1, 1, ['img.@.dpx'])
+
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.0050.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 1, 1, ['.img.0050.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.50.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 0, 0, ['.img.50.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.0500.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 0, 0, ['.img.0500.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.0050.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 1, 1, ['.img.0050.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.####.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 1, 1, ['.img.####.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.###.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 0, 0, ['.img.###.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.#####.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 0, 0, ['.img.#####.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.%04d.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 1, 1, ['.img.%04d.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.%05d.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 0, 0, ['.img.%05d.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.%03d.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 0, 0, ['.img.%03d.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionDefault, 0, 0, 0, 0, ['.img.@.dpx'])
+    checkItemsInDirectory(no_strict, seq.eDetectionNone, 0, 0, 1, 1, ['.img.@.dpx'])
