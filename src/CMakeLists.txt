@@ -48,6 +48,15 @@ if(BUILD_SHARED_LIBS)
         # every symbol so the import library is generated. No-op elsewhere.
         WINDOWS_EXPORT_ALL_SYMBOLS ON
     )
+    # WINDOWS_EXPORT_ALL_SYMBOLS builds the export .def by scanning the object
+    # files' COFF symbol tables, but with IPO/LTO (/GL) the objects hold an
+    # intermediate representation instead — the scan crashes (access violation).
+    # The two are incompatible, so turn IPO off for this target on Windows only;
+    # everything else keeps the global CMAKE_INTERPROCEDURAL_OPTIMIZATION.
+    if(WIN32)
+        set_target_properties(sequenceparser-shared PROPERTIES
+            INTERPROCEDURAL_OPTIMIZATION OFF)
+    endif()
 endif()
 
 # ────────────────────────────────────────────────────────────────────────────
