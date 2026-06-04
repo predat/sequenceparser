@@ -8,25 +8,15 @@
 #include <string>
 #include <cstddef>
 
-#ifdef _MSC_VER
-    #include <BaseTsd.h>
-#else
-    #include <unistd.h>
-#endif
-
-// Compatibility problems
-namespace std {
-#ifdef _MSC_VER
-typedef SSIZE_T ssize_t;
-#else
-typedef ::ssize_t ssize_t;
-#endif
-}  // namespace std
-
 namespace sequenceParser {
 
 #ifndef SWIG
-typedef ::std::ssize_t Time;
+// Frame numbers can be negative, so Time is a signed, pointer-sized integer.
+// std::ptrdiff_t is the portable spelling for that (== long on LP64
+// Linux/macOS, long long on Windows LLP64). It avoids both the platform
+// SSIZE_T mess and the undefined behaviour of adding a typedef to namespace
+// std. The SWIG side mirrors this type in common.i.
+typedef std::ptrdiff_t Time;
 
     #define SEQUENCEPARSER_ENUM_BITWISE_OPERATORS(ENUM_TYPE)                                                                                         \
                                                                                                                                                      \

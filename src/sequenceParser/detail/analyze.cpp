@@ -201,7 +201,7 @@ void privateBuildSequencesAccordingToPadding(std::vector<Sequence>& result,
     }
 }
 
-bool getVaryingNumber(std::ssize_t& index, const FileNumbers& a, const FileNumbers& b)
+bool getVaryingNumber(std::ptrdiff_t& index, const FileNumbers& a, const FileNumbers& b)
 {
     assert(a.size() == b.size());
     bool foundOne = false;
@@ -274,8 +274,8 @@ std::vector<Sequence> buildSequences(const fs::path& directory,
     std::vector<FileNumbers>::iterator first = numberParts.begin();
     std::vector<FileNumbers>::iterator it = std::next(first);
     std::vector<FileNumbers>::iterator itEnd = numberParts.end();
-    std::ssize_t previousIndex = -1;
-    std::ssize_t index = -1;
+    std::ptrdiff_t previousIndex = -1;
+    std::ptrdiff_t index = -1;
     bool split = false;
 
     for (; it != itEnd; ++it)

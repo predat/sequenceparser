@@ -36,7 +36,7 @@ class FileNumbers
     {
         try
         {
-            // Use std::stoll which handles the full range of ssize_t (= long/long long on 64-bit linux)
+            // Use std::stoll which handles the full range of Time (std::ptrdiff_t, 64-bit on our targets)
             const Time t = static_cast<Time>(std::stoll(s));
             _numbers.push_back(Pair(t, s));
         }

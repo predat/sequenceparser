@@ -64,7 +64,7 @@ class FrameRangesConstIterator
     typedef std::bidirectional_iterator_tag iterator_category;
     typedef int difference_type;
 
-    FrameRangesConstIterator(std::vector<FrameRange>::const_iterator rangeIterator, std::ssize_t index)
+    FrameRangesConstIterator(std::vector<FrameRange>::const_iterator rangeIterator, std::ptrdiff_t index)
       : _rangeIterator(rangeIterator),
         _index(index)
     {}
@@ -125,7 +125,7 @@ class FrameRangesConstIterator
         return _rangeIterator->atIndex(_index);
     }
     inline value_type value() { return this->operator*(); }
-    [[nodiscard]] inline std::ssize_t getRealIndex() const
+    [[nodiscard]] inline std::ptrdiff_t getRealIndex() const
     {
         if (_index < 0)
             return _rangeIterator->getNbFrames() + _index;
@@ -139,7 +139,7 @@ class FrameRangesConstIterator
 
   public:
     std::vector<FrameRange>::const_iterator _rangeIterator;
-    std::ssize_t _index;
+    std::ptrdiff_t _index;
 };
 
 #ifndef SWIG

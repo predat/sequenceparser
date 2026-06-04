@@ -1,7 +1,7 @@
-// Time must resolve to the *same* underlying type as the C++ ::std::ssize_t
+// Time must resolve to the *same* underlying type as the C++ std::ptrdiff_t
 // used in common.hpp (which is hidden from SWIG behind `#ifndef SWIG`):
-//   - LP64 (Linux/macOS)  : ssize_t == long       (64-bit)
-//   - LLP64 (Windows x64) : SSIZE_T == long long   (64-bit, `long` is 32-bit!)
+//   - LP64 (Linux/macOS)  : ptrdiff_t == long       (64-bit)
+//   - LLP64 (Windows x64) : ptrdiff_t == long long   (64-bit, `long` is 32-bit!)
 // The names — not just the sizes — must match, otherwise SWIG emits
 // std::pair<long,long> wrappers that don't convert to the real
 // std::pair<long long,long long> on MSVC (error C2440). The build passes
