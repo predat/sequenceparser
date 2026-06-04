@@ -26,14 +26,14 @@ class FrameRange
     {
         assert(step >= 1);
     }
-    inline Time atIndex(Time index) const { return first + index * step; }
-    inline Time getNbFrames() const
+    [[nodiscard]] inline Time atIndex(Time index) const { return first + index * step; }
+    [[nodiscard]] inline Time getNbFrames() const
     {
         assert(step >= 1);
         return ((last - first) / step) + 1;
     }
     inline bool operator==(const FrameRange& other) const { return (first == other.first) && (last == other.last) && (step == other.step); }
-    std::string string() const;
+    [[nodiscard]] std::string string() const;
 
   public:
     Time first;
@@ -125,7 +125,7 @@ class FrameRangesConstIterator
         return _rangeIterator->atIndex(_index);
     }
     inline value_type value() { return this->operator*(); }
-    inline std::ssize_t getRealIndex() const
+    [[nodiscard]] inline std::ssize_t getRealIndex() const
     {
         if (_index < 0)
             return _rangeIterator->getNbFrames() + _index;
@@ -143,7 +143,7 @@ class FrameRangesConstIterator
 };
 
 #ifndef SWIG
-std::vector<FrameRange> extractFrameRanges(const std::vector<Time>& times);
+[[nodiscard]] std::vector<FrameRange> extractFrameRanges(const std::vector<Time>& times);
 #endif
 
 class FrameRangesView
@@ -155,12 +155,12 @@ class FrameRangesView
       : _data(data)
     {}
 
-    std::size_t size() const;
+    [[nodiscard]] std::size_t size() const;
 
     inline const_iterator begin() const { return const_iterator(_data.begin(), 0); }
     inline const_iterator end() const { return const_iterator(_data.end(), 0); }
-    inline const std::vector<FrameRange>& getFrameRanges() const { return _data; }
-    std::string string() const;
+    [[nodiscard]] inline const std::vector<FrameRange>& getFrameRanges() const { return _data; }
+    [[nodiscard]] std::string string() const;
 
   private:
     const std::vector<FrameRange>& _data;
@@ -181,7 +181,7 @@ class FrameRangesSubView
         _lastTime(lastTime)
     {}
 
-    std::size_t size() const;
+    [[nodiscard]] std::size_t size() const;
 
     enum EFrameStatus
     {

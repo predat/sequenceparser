@@ -73,7 +73,7 @@ class Sequence
     }
 #endif
 
-    Sequence* clone() const { return new Sequence(*this); }
+    [[nodiscard]] Sequence* clone() const { return new Sequence(*this); }
 
   private:
     /**
@@ -90,56 +90,56 @@ class Sequence
 
   public:
     /// @return A list of filenames contained in the sequence.
-    std::vector<std::string> getFiles() const;
+    [[nodiscard]] std::vector<std::string> getFiles() const;
 
     /**
      * @return The path to the file at the given time.
      * @warning There is no check to validate that the given time exists.
      */
-    std::string getFilenameAt(const Time time) const;
+    [[nodiscard]] std::string getFilenameAt(const Time time) const;
 
-    inline std::string getFirstFilename() const;
+    [[nodiscard]] inline std::string getFirstFilename() const;
 
-    inline std::string getLastFilename() const;
+    [[nodiscard]] inline std::string getLastFilename() const;
 
     /// @return pattern character in standard style
-    inline char getPatternCharacter() const;
+    [[nodiscard]] inline char getPatternCharacter() const;
 
     /// @return a string pattern using standard style
-    inline std::string getFilenameWithStandardPattern() const;
+    [[nodiscard]] inline std::string getFilenameWithStandardPattern() const;
 
     /// @return a string pattern using printf style
-    inline std::string getFilenameWithPrintfPattern() const;
+    [[nodiscard]] inline std::string getFilenameWithPrintfPattern() const;
 
     /// @return a string pattern using C Style
-    std::string getCStylePattern() const;
+    [[nodiscard]] std::string getCStylePattern() const;
 
     /**
      * @return The frame range between first time and last time.
      * @warning The range could have holes.
      * @see hasMissingFile
      */
-    inline std::pair<Time, Time> getGlobalRange() const;
+    [[nodiscard]] inline std::pair<Time, Time> getGlobalRange() const;
 
-    inline Time getFirstTime() const;
+    [[nodiscard]] inline Time getFirstTime() const;
 
-    inline Time getLastTime() const;
+    [[nodiscard]] inline Time getLastTime() const;
 
     /**
      * @return Times between first and last frame.
      * @warning The range could have holes.
      * @see getNbFiles
      */
-    inline std::size_t getDuration() const;
+    [[nodiscard]] inline std::size_t getDuration() const;
 
-    Time getNbFiles() const;
+    [[nodiscard]] Time getNbFiles() const;
 
     /**
      * @return The size of the padding (if fixed padding).
      * @note if 0, variable padding
      * @see getMaxPadding
      */
-    inline std::size_t getFixedPadding() const;
+    [[nodiscard]] inline std::size_t getFixedPadding() const;
 
     /**
      * @return The number max of common padding used to enumerate the sequence
@@ -154,20 +154,20 @@ class Sequence
      * seq.0100.jpg
      * seq.099.jpg
      */
-    inline std::size_t getMaxPadding() const;
+    [[nodiscard]] inline std::size_t getMaxPadding() const;
 
-    inline bool hasMissingFile() const;
+    [[nodiscard]] inline bool hasMissingFile() const;
 
-    inline std::size_t getNbMissingFiles() const;
+    [[nodiscard]] inline std::size_t getNbMissingFiles() const;
 
     /// @return The filename without frame number (example: "sequence-.jpg" instead of "sequence-####.jpg")
-    inline std::string getIdentification() const;
+    [[nodiscard]] inline std::string getIdentification() const;
 
     /// @return The filename prefix (example: "sequence-" instead of "sequence-####.jpg")
-    inline std::string getPrefix() const;
+    [[nodiscard]] inline std::string getPrefix() const;
 
     /// @return The filename suffix (example: ".jpg" instead of "sequence-####.jpg")
-    inline std::string getSuffix() const;
+    [[nodiscard]] inline std::string getSuffix() const;
 
     /**
      * @brief Check if the filename is inside the sequence and return it's time value.
@@ -178,7 +178,7 @@ class Sequence
      */
     bool isIn(const std::string& filename, Time& timeOut, std::string& timeStrOut);
 
-    EPattern checkPattern(const std::string& pattern, const EDetection detectionOptions);
+    [[nodiscard]] EPattern checkPattern(const std::string& pattern, const EDetection detectionOptions);
 
     bool operator<(const Sequence& other) const { return getFilenameWithStandardPattern() < other.getFilenameWithStandardPattern(); }
 
@@ -194,7 +194,7 @@ class Sequence
      * @brief Partial initialization, using only pattern informations.
      * @warning You don't have all informations like range, directory, etc.
      */
-    bool initFromPattern(const std::string& pattern, const EPattern& accept);
+    [[nodiscard]] bool initFromPattern(const std::string& pattern, const EPattern& accept);
 
   public:
 #ifndef SWIG
@@ -202,16 +202,16 @@ class Sequence
      * @brief Iterate over files name contained in Sequence and concatenates file name to parentPath
      * @param parentFolder
      */
-    std::vector<std::filesystem::path> getAbsoluteFilesPath(std::filesystem::path const& parentPath) const;
+    [[nodiscard]] std::vector<std::filesystem::path> getAbsoluteFilesPath(std::filesystem::path const& parentPath) const;
 #endif
 
     std::vector<FrameRange>& getFrameRanges() { return _ranges; }
 #ifndef SWIG
-    const std::vector<FrameRange>& getFrameRanges() const { return _ranges; }
+    [[nodiscard]] const std::vector<FrameRange>& getFrameRanges() const { return _ranges; }
 #endif
 
-    const FrameRangesView getFramesIterable() const { return FrameRangesView(getFrameRanges()); }
-    const FrameRangesSubView getFramesIterable(const Time first, const Time last) const { return FrameRangesSubView(getFrameRanges(), first, last); }
+    [[nodiscard]] const FrameRangesView getFramesIterable() const { return FrameRangesView(getFrameRanges()); }
+    [[nodiscard]] const FrameRangesSubView getFramesIterable(const Time first, const Time last) const { return FrameRangesSubView(getFrameRanges(), first, last); }
 
     inline void clear()
     {
@@ -222,7 +222,7 @@ class Sequence
         _ranges.clear();
     }
 
-    std::string string() const;
+    [[nodiscard]] std::string string() const;
 
   public:
     std::string _prefix;
@@ -241,26 +241,26 @@ std::ostream& operator<<(std::ostream& os, const Sequence& sequence);
 /**
  * @brief Extract step from a sorted vector of time values.
  */
-std::size_t extractStep(const std::vector<Time>& times);
+[[nodiscard]] std::size_t extractStep(const std::vector<Time>& times);
 
 /**
  * @brief Extract step from a sorted vector of time values.
  */
-std::size_t extractStep(const std::vector<detail::FileNumbers>::const_iterator& timesBegin,
-                        const std::vector<detail::FileNumbers>::const_iterator& timesEnd,
-                        const std::size_t i);
+[[nodiscard]] std::size_t extractStep(const std::vector<detail::FileNumbers>::const_iterator& timesBegin,
+                                      const std::vector<detail::FileNumbers>::const_iterator& timesEnd,
+                                      const std::size_t i);
 
-std::size_t getFixedPaddingFromStringNumber(const std::string& timeStr);
+[[nodiscard]] std::size_t getFixedPaddingFromStringNumber(const std::string& timeStr);
 
 /**
  * @brief extract the padding from a vector of frame numbers
  * @param[in] timesStr vector of frame numbers in string format
  */
-std::size_t extractPadding(const std::vector<std::string>& timesStr);
+[[nodiscard]] std::size_t extractPadding(const std::vector<std::string>& timesStr);
 
-std::size_t extractPadding(const std::vector<detail::FileNumbers>::const_iterator& timesBegin,
-                           const std::vector<detail::FileNumbers>::const_iterator& timesEnd,
-                           const std::size_t i);
+[[nodiscard]] std::size_t extractPadding(const std::vector<detail::FileNumbers>::const_iterator& timesBegin,
+                                         const std::vector<detail::FileNumbers>::const_iterator& timesEnd,
+                                         const std::size_t i);
 
 #endif
 

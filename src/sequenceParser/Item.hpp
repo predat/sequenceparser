@@ -56,30 +56,30 @@ class Item
         _path /= sequence.getFilenameWithStandardPattern();
     }
 
-    EType getType() const { return _type; }
+    [[nodiscard]] EType getType() const { return _type; }
 
-    std::string getAbsoluteFilepath() const { return _path.string(); }
-    std::string getFilename() const { return _path.filename().string(); }
-    std::string getFolder() const { return getFolderPath().string(); }
+    [[nodiscard]] std::string getAbsoluteFilepath() const { return _path.string(); }
+    [[nodiscard]] std::string getFilename() const { return _path.filename().string(); }
+    [[nodiscard]] std::string getFolder() const { return getFolderPath().string(); }
 
     /**
      * @brief Usefull for sequences items: explode sequence
      */
-    std::vector<Item> explode() const;
+    [[nodiscard]] std::vector<Item> explode() const;
 
-    const Sequence& getSequence() const { return _sequence; }
+    [[nodiscard]] const Sequence& getSequence() const { return _sequence; }
 
 #ifndef SWIG
-    const std::filesystem::path& getPath() const { return _path; }
-    const std::filesystem::path getFolderPath() const { return _path.parent_path(); }
+    [[nodiscard]] const std::filesystem::path& getPath() const { return _path; }
+    [[nodiscard]] const std::filesystem::path getFolderPath() const { return _path.parent_path(); }
 #endif
 
-    std::string getAbsoluteFirstFilename() const;
-    std::string getFirstFilename() const;
+    [[nodiscard]] std::string getAbsoluteFirstFilename() const;
+    [[nodiscard]] std::string getFirstFilename() const;
 
     bool operator<(const Item& other) const { return _path < other._path; }
 
-    std::string string() const { return getType() == eTypeSequence ? getSequence().string() : _path.string(); }
+    [[nodiscard]] std::string string() const { return getType() == eTypeSequence ? getSequence().string() : _path.string(); }
 
   private:
     EType _type;
@@ -90,14 +90,14 @@ class Item
 };
 
 #ifndef SWIG
-EType getTypeFromPath(const std::filesystem::path& path);
+[[nodiscard]] EType getTypeFromPath(const std::filesystem::path& path);
 #endif
 /**
  * @warning The methods checks if the given path corresponds to a link, a file or a folder (in the filesystem).
  * Else the method returns unknown type (it never returns a sequence).
  * @see getTypeFromPath
  */
-EType getTypeFromPath(const std::string& pathStr);
+[[nodiscard]] EType getTypeFromPath(const std::string& pathStr);
 
 #ifndef SWIG
 std::ostream& operator<<(std::ostream& os, const Item& item);
