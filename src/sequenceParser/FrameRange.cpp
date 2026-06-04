@@ -18,7 +18,7 @@ std::ostream& operator<<(std::ostream& os, const FrameRange& range)
     os << range.first;
     if (range.first == range.last)
         return os;
-    os << ":" << range.last;
+    os << "-" << range.last;
 
     if (range.step != 1)
         os << "x" << range.step;
