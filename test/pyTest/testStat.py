@@ -8,8 +8,13 @@ import pytest
 from pySequenceParser import sequenceParser as seq
 from . import createFile, createFolder, createSymLink, getSequencesFromPath
 
+
 user_name = getpass.getuser()
-grp_name = grp.getgrnam(user_name).gr_name
+try:
+    grp_name = grp.getgrnam(getpass.getuser()).gr_name
+except KeyError:
+    gid = pwd.getpwuid(os.getuid()).pw_gid
+    grp_name = grp.getgrgid(gid).gr_name
 
 
 @pytest.fixture(scope="module")
