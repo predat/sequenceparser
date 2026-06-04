@@ -21,6 +21,39 @@ Example::
     >>> print(len(seq), 'files,', seq.getFirstTime(), '-', seq.getLastTime())
 ";
 
+%feature("docstring") sequenceParser::Sequence::Sequence "
+Construct a Sequence.
+
+Three forms are available:
+
+``Sequence()``
+    Empty sequence.
+
+``Sequence(prefix, padding, maxPadding, suffix, firstTime, lastTime[, step=1])``
+    Build a sequence from its components (no filesystem access).
+
+    Args:
+        prefix (str): Filename prefix (e.g. ``'frame.'``).
+        padding (int): Fixed padding width (0 = variable).
+        maxPadding (int): Maximum padding width observed.
+        suffix (str): Filename suffix (e.g. ``'.exr'``).
+        firstTime (int): First frame number.
+        lastTime (int): Last frame number.
+        step (int): Step between consecutive frames (default 1).
+
+``Sequence(pattern, frameRanges[, accept=ePatternDefault])``
+    Build a sequence from a pattern string and explicit frame ranges.
+
+    Args:
+        pattern (str): Filename pattern (e.g. ``'frame.####.exr'``).
+        frameRanges (FrameRangeVector): Frame ranges to assign.
+        accept (int): Bitmask of ``EPattern`` flags (default
+            ``ePatternDefault``).
+
+Note:
+    Use :func:`browseSequence` to detect a sequence from the filesystem.
+";
+
 %feature("docstring") sequenceParser::Sequence::getFiles "
 Return a list of every filename in the sequence.
 

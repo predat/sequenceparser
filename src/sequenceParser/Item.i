@@ -89,6 +89,33 @@ Returns:
     str: Basename of the first frame.
 ";
 
+%feature("docstring") sequenceParser::Item::Item "
+Construct an Item.
+
+Three forms are available:
+
+``Item()``
+    Default item (type ``eTypeFile``, empty path).
+
+``Item(type, filepath)``
+    Item for a plain file, folder or symbolic link.
+
+    Args:
+        type (int): ``eTypeFile``, ``eTypeFolder``, or ``eTypeLink``.
+        filepath (str): Absolute path to the filesystem element.
+
+``Item(sequence, folder)``
+    Item wrapping a file sequence.
+
+    Args:
+        sequence (Sequence): Sequence descriptor.
+        folder (str): Absolute path to the parent directory.
+
+Note:
+    Items are usually obtained from :func:`browse` rather than
+    constructed directly.
+";
+
 %feature("docstring") sequenceParser::getTypeFromPath "
 Detect the filesystem type of a path (file, folder, or link).
 
