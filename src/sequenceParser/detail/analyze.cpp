@@ -4,7 +4,6 @@
 #include "FileStrings.hpp"
 
 #include <regex>
-#include <unordered_map>
 #include <set>
 #include <cassert>
 #include <iterator>
@@ -82,9 +81,6 @@ Sequence privateBuildSequence(const Sequence& defaultSeq,
         sequence._suffix += numberPartsBegin->getString(i);
     }
     sequence._suffix += stringParts[len];
-
-    std::vector<FileNumbers>::const_iterator numberPartsLast = numberPartsEnd;
-    --numberPartsLast;
 
     // standard case, one sequence detected
     std::vector<Time> times;
@@ -253,7 +249,7 @@ std::vector<Sequence> buildSequences(const fs::path& directory,
     std::vector<std::size_t> allIndex;  // vector of indices (with 0 < index < len) with value changes
     for (std::size_t i = 0; i < len; ++i)
     {
-        const std::string t = numberParts.front().getString(i);
+        const std::string& t = numberParts.front().getString(i);
 
         for (const FileNumbers& sn : numberParts)
         {
@@ -320,16 +316,10 @@ std::vector<Sequence> buildSequences(const fs::path& directory,
 std::size_t decomposeFilename(const std::string& filename, FileStrings& stringParts, FileNumbers& numberParts, const EDetection& options)
 {
     static const std::size_t max = std::numeric_limits<Time>::digits10;
-    std::string regexStr;
-    if (options & eDetectionNegative)
-    {
-        regexStr = "[\\+\\-]?\\d{1," + std::to_string(max) + "}";
-    }
-    else
-    {
-        regexStr = "\\d{1," + std::to_string(max) + "}";
-    }
-    const std::regex re(regexStr);
+    // Compiled once per process — std::regex construction is expensive (called for every file).
+    static const std::regex rePositive("\\d{1," + std::to_string(max) + "}");
+    static const std::regex reNegative("[\\+\\-]?\\d{1," + std::to_string(max) + "}");
+    const std::regex& re = (options & eDetectionNegative) ? reNegative : rePositive;
     // Iterate over matches and non-matches to interleave string/number parts
     auto it = std::sregex_iterator(filename.begin(), filename.end(), re);
     auto end = std::sregex_iterator();
