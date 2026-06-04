@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ develop, master, main ]
+    branches: [ develop, master, main, feature/remove_boost ]
   pull_request:
   workflow_dispatch:
 
