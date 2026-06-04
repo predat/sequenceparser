@@ -11,7 +11,16 @@ FetchContent_Declare(
     GIT_SHALLOW    TRUE
     FIND_PACKAGE_ARGS 3
 )
+
+# Build Catch2 as a static library regardless of the project's BUILD_SHARED_LIBS:
+# it is a test-only dependency, and as a DLL it would hit the same MSVC
+# IPO + WINDOWS_EXPORT_ALL_SYMBOLS linker crash we already avoid for our own
+# shared library. Static also spares us putting Catch2.dll on PATH at test time.
+# Restore the flag right after so it still drives our own library selection below.
+set(_sp_saved_build_shared "${BUILD_SHARED_LIBS}")
+set(BUILD_SHARED_LIBS OFF)
 FetchContent_MakeAvailable(Catch2)
+set(BUILD_SHARED_LIBS "${_sp_saved_build_shared}")
 
 # Library under test: the shared library by default, the static one otherwise.
 if(BUILD_SHARED_LIBS)
