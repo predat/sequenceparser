@@ -32,6 +32,25 @@ version in that header.
 
 ## Tests
 
+There are two test suites: native **C++ unit tests** (Catch2) and **Python** integration tests
+(pytest).
+
+### C++ tests (Catch2 + CTest)
+
+Sources live in `test/cppTest/`. Catch2 v3 is pulled in with `FetchContent` at configure time (no
+system package needed), and every `TEST_CASE` is registered with CTest via `catch_discover_tests`.
+They are built by default (`-DSEQUENCEPARSER_BUILD_TESTS=ON`) and link the library target directly,
+so they exercise the public API *and* internal `detail/` helpers (`decomposeFilename`, …) without
+going through SWIG.
+
+```bash
+cmake --build build                       # builds sequenceParserCppTests too
+ctest --test-dir build --output-on-failure        # run all C++ tests
+ctest --test-dir build -R FrameRange              # run a subset by name
+```
+
+### Python tests
+
 Python tests in `test/pyTest/` run under **pytest** (migrated away from nose). A `venv/` with pytest
 is expected at the repo root.
 

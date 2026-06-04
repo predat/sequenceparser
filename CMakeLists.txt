@@ -98,3 +98,13 @@ endif()
 # Subdirectories
 # ────────────────────────────────────────────────────────────────────────────
 add_subdirectory(src)
+
+# ────────────────────────────────────────────────────────────────────────────
+# C++ unit tests (Catch2 + CTest). Configure with -DSEQUENCEPARSER_BUILD_TESTS=OFF
+# to skip them (and the Catch2 download) when only the library is needed.
+# ────────────────────────────────────────────────────────────────────────────
+option(SEQUENCEPARSER_BUILD_TESTS "Build the C++ unit tests (Catch2)" ON)
+if(SEQUENCEPARSER_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(test/cppTest)
+endif()
