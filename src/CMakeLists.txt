@@ -136,13 +136,15 @@ set_source_files_properties(${SEQUENCEPARSER_BINDING_FILE} PROPERTIES
     SWIG_MODULE_NAME sequenceParser   # forces PyInit_sequenceParser (target name has a dash)
 )
 
-set(COMMON_SWIG_FLAGS -c++ -fcompact -small -O -Werror)
+set(COMMON_SWIG_FLAGS -c++ -fcompact -small -doxygen -O -Werror)
 
 # ── Python ──────────────────────────────────────────────────────────────────
 # Use the modern FindPython3 module (replaces deprecated FindPythonLibs / CMP0148)
 find_package(Python3 ${SEQUENCEPARSER_PYTHON_VERSION} COMPONENTS Interpreter Development)
 if(Python3_Development_FOUND)
     set(_py_target sequenceParser)
+
+    set(CMAKE_SWIG_FLAGS ${COMMON_SWIG_FLAGS})
 
     swig_add_library(${_py_target}
         TYPE        MODULE
