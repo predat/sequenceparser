@@ -156,6 +156,13 @@ set_source_files_properties(${SEQUENCEPARSER_BINDING_FILE} PROPERTIES
 
 set(COMMON_SWIG_FLAGS -c++ -fcompact -small -doxygen -O -Werror)
 
+# On 64-bit Windows ::std::ssize_t (and thus Time) is `long long`, not `long`
+# as on LP64 Linux/macOS. Tell SWIG so its Time typedef matches the real type
+# (see src/sequenceParser/common.i), otherwise MSVC fails with error C2440.
+if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+    list(APPEND COMMON_SWIG_FLAGS -DSEQUENCEPARSER_TIME_IS_LONGLONG)
+endif()
+
 # ── Python ──────────────────────────────────────────────────────────────────
 # Use the modern FindPython3 module (replaces deprecated FindPythonLibs / CMP0148)
 find_package(Python3 ${SEQUENCEPARSER_PYTHON_VERSION} COMPONENTS Interpreter Development)

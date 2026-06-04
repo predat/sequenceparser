@@ -1,3 +1,19 @@
+// Time must resolve to the *same* underlying type as the C++ ::std::ssize_t
+// used in common.hpp (which is hidden from SWIG behind `#ifndef SWIG`):
+//   - LP64 (Linux/macOS)  : ssize_t == long       (64-bit)
+//   - LLP64 (Windows x64) : SSIZE_T == long long   (64-bit, `long` is 32-bit!)
+// The names — not just the sizes — must match, otherwise SWIG emits
+// std::pair<long,long> wrappers that don't convert to the real
+// std::pair<long long,long long> on MSVC (error C2440). The build passes
+// -DSEQUENCEPARSER_TIME_IS_LONGLONG to SWIG on 64-bit Windows.
+namespace sequenceParser {
+#ifdef SEQUENCEPARSER_TIME_IS_LONGLONG
+typedef long long int Time;
+#else
+typedef long int Time;
+#endif
+}
+
 %include <std_pair.i>
 %include <std_vector.i>
 %include <std_string.i>
@@ -14,10 +30,6 @@ namespace std {
 #include <filesystem>
 #include <system_error>
 %}
-
-namespace sequenceParser {
-typedef long int Time;
-}
 
 %exception {
 try
