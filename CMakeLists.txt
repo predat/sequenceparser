@@ -66,11 +66,15 @@ unset(_ipo_output)
 # Per-configuration compile options (via generator expressions – no flag pollution)
 # ────────────────────────────────────────────────────────────────────────────
 if(MSVC)
-    add_compile_options(
-        $<$<CONFIG:Debug>:/MTd>
-        $<$<CONFIG:Release>:/MT>
-        $<$<CONFIG:Release>:/O2>
-    )
+    # Use the DLL form of the C runtime (/MD, /MDd) rather than the static one
+    # (/MT, /MTd): the Python extension must match Python itself (built with
+    # /MD), and the shared library passes STL objects (std::string, std::vector)
+    # across the DLL boundary — mixing a static CRT gives each module its own
+    # heap and corrupts memory. CMP0091 (NEW since CMake 3.15) routes this
+    # through the abstraction below; passing /MT as a raw flag here is what
+    # triggered the "D9025 overriding '/MD' with '/MT'" warning.
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    add_compile_options($<$<CONFIG:Release>:/O2>)
 else()
     add_compile_options(
         $<$<CONFIG:Debug>:-Wall>
