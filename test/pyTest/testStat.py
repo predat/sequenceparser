@@ -2,10 +2,18 @@ import os
 import time
 import shutil
 import getpass
-import pwd
-import grp
 import platform
 import pytest
+
+# This module asserts POSIX ownership (pwd/grp) and Unix permission bits, which
+# have no equivalent on Windows. Skip the whole module on non-POSIX platforms
+# before importing the POSIX-only pwd/grp modules.
+if os.name != "posix":
+    pytest.skip("ItemStat ownership/permission tests are POSIX-only",
+                allow_module_level=True)
+
+import pwd
+import grp
 
 from pySequenceParser import sequenceParser as seq
 from . import createFile, createFolder, createSymLink, getSequencesFromPath
