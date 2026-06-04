@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [ develop, master, main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        python-version: [ '3.12' ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install pytest
+        run: python -m pip install --upgrade pip pytest
+
+      # ── Per-OS toolchain: SWIG (≥4.1) + Ninja. CMake is preinstalled on all runners. ──
+      - name: Install toolchain (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y swig ninja-build
+
+      - name: Install toolchain (macOS)
+        if: runner.os == 'macOS'
+        run: brew install swig ninja
+
+      - name: Install toolchain (Windows)
+        if: runner.os == 'Windows'
+        run: choco install --no-progress -y swig ninja
+
+      # Populate the MSVC environment (cl, link) so the Ninja generator can find it.
+      - name: Set up MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install
+          -DPython3_EXECUTABLE="${{ steps.setup-python.outputs.python-path }}"
+          -DCMAKE_DISABLE_FIND_PACKAGE_Java=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_JNI=ON
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Install
+        run: cmake --install build --config Release
+
+      - name: Run Python tests
+        run: python -m pytest -v
+
+      - name: Upload install tree
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sequenceParser-${{ matrix.os }}
+          path: install
+          if-no-files-found: ignore
