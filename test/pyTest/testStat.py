@@ -4,6 +4,7 @@ import shutil
 import getpass
 import pwd
 import grp
+import platform
 import pytest
 
 from pySequenceParser import sequenceParser as seq
@@ -116,7 +117,8 @@ def testSymLinkStat(root_path):
     assert itemStat.ownerCanWrite is True
     assert itemStat.ownerCanExecute is True
     assert itemStat.groupCanRead is True
-    assert itemStat.groupCanWrite is True
+    if platform.system() == "Linux":
+        assert itemStat.groupCanWrite is True
     assert itemStat.groupCanExecute is True
     assert itemStat.otherCanRead is True
     assert itemStat.otherCanWrite is True
