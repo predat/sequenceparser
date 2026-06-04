@@ -8,7 +8,6 @@
 
 #include <regex>
 #include <unordered_map>
-#include <set>
 #include <filesystem>
 
 namespace sequenceParser {
@@ -40,7 +39,6 @@ bool browseSequence(Sequence& outSequence, const std::string& pattern, const EPa
     if (!fs::exists(directory))
         return false;  // an empty sequence
 
-    std::vector<std::string> allTimesStr;
     std::vector<Time> allTimes;
 
     for (const auto& entry : fs::directory_iterator(directory))
@@ -51,8 +49,7 @@ bool browseSequence(Sequence& outSequence, const std::string& pattern, const EPa
         // if the file is inside the sequence
         if (outSequence.isIn(entry.path().filename().string(), time, timeStr))
         {
-            // create a big vector of all times in our sequence
-            allTimesStr.push_back(timeStr);
+            // collect all the frame numbers of our sequence
             allTimes.push_back(time);
         }
     }
@@ -106,19 +103,9 @@ std::vector<Item> browse(const fs::path& dir, const EDetection detectOptions, co
         // if at least one number detected
         if (decomposeFilename(entry.path().filename().string(), tmpStringParts, tmpNumberParts, detectOptions))
         {
-            const SeqIdMap::iterator it(sequences.find(tmpStringParts));
-            if (it != sequences.end())  // is already in map
-            {
-                // append the vector of numbers
-                sequences.at(tmpStringParts).push_back(tmpNumberParts);
-            }
-            else
-            {
-                // create an entry in the map
-                std::vector<FileNumbers> li;
-                li.push_back(tmpNumberParts);
-                sequences.insert(SeqIdMap::value_type(tmpStringParts, li));
-            }
+            // single lookup: insert an empty entry if absent, then append the numbers
+            [[maybe_unused]] auto [it, inserted] = sequences.try_emplace(tmpStringParts);
+            it->second.push_back(tmpNumberParts);
         }
         else
         {
