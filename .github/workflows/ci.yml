@@ -2,72 +2,157 @@ name: CI
 
 on:
   push:
-    branches: [ develop, master, main, feature/remove_boost ]
+    branches:
+      - develop
+      - master
+      - main
+      - feature/remove_boost
+
   pull_request:
+
   workflow_dispatch:
 
 jobs:
   build:
-    name: ${{ matrix.os }}
+    name: ${{ matrix.name }}
+
     runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
+
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
-        python-version: [ '3.12' ]
+        include:
+          - name: Linux GCC
+            os: ubuntu-latest
+            cc: gcc
+            cxx: g++
+
+          - name: Linux Clang
+            os: ubuntu-latest
+            cc: clang
+            cxx: clang++
+
+          - name: macOS AppleClang
+            os: macos-latest
+
+          - name: Windows MSVC
+            os: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Python
         id: setup-python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.12"
+          cache: pip
 
-      - name: Install pytest
-        run: python -m pip install --upgrade pip pytest
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
 
-      # ── Per-OS toolchain: SWIG (≥4.1) + Ninja. CMake is preinstalled on all runners. ──
+      # ----------------------------------------------------------------------
+      # Toolchains
+      # ----------------------------------------------------------------------
+
       - name: Install toolchain (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y swig ninja-build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y swig ninja-build clang
 
       - name: Install toolchain (macOS)
         if: runner.os == 'macOS'
-        run: brew install swig ninja
+        run: |
+          brew install swig ninja
 
       - name: Install toolchain (Windows)
         if: runner.os == 'Windows'
-        run: choco install --no-progress -y swig ninja
+        run: |
+          choco install --no-progress -y swig ninja
 
-      # Populate the MSVC environment (cl, link) so the Ninja generator can find it.
-      - name: Set up MSVC (Windows)
+      - name: Set up MSVC
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
+      # ----------------------------------------------------------------------
+      # Compiler selection
+      # ----------------------------------------------------------------------
+
+      - name: Configure compiler environment
+        if: runner.os == 'Linux'
+        run: |
+          echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
+          echo "CXX=${{ matrix.cxx }}" >> $GITHUB_ENV
+
+      # ----------------------------------------------------------------------
+      # Diagnostics
+      # ----------------------------------------------------------------------
+
+      - name: Display tool versions
+        shell: bash
+        run: |
+          python --version
+          cmake --version
+          ninja --version
+          swig -version
+
+      - name: Display compiler version (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          $CC --version
+          $CXX --version
+
+      # ----------------------------------------------------------------------
+      # Configure
+      # ----------------------------------------------------------------------
+
       - name: Configure
         run: >
-          cmake -S . -B build -G Ninja
+          cmake
+          -S .
+          -B build
+          -G Ninja
           -DCMAKE_BUILD_TYPE=Release
           -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install
-          -DPython3_EXECUTABLE="${{ steps.setup-python.outputs.python-path }}"
+          -DPython3_EXECUTABLE=${{ steps.setup-python.outputs.python-path }}
           -DCMAKE_DISABLE_FIND_PACKAGE_Java=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_JNI=ON
+
+      # ----------------------------------------------------------------------
+      # Build
+      # ----------------------------------------------------------------------
 
       - name: Build
         run: cmake --build build --config Release
 
+      # ----------------------------------------------------------------------
+      # Install
+      # ----------------------------------------------------------------------
+
       - name: Install
         run: cmake --install build --config Release
 
+      # ----------------------------------------------------------------------
+      # Tests
+      # ----------------------------------------------------------------------
+
       - name: Run Python tests
         run: python -m pytest -v
+
+      # ----------------------------------------------------------------------
+      # Artifacts
+      # ----------------------------------------------------------------------
 
       - name: Upload install tree
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sequenceParser-${{ matrix.os }}
+          name: sequenceParser-${{ matrix.name }}
           path: install
           if-no-files-found: ignore
