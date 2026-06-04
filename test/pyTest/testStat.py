@@ -2,6 +2,7 @@ import os
 import time
 import shutil
 import getpass
+import pwd
 import grp
 import pytest
 
