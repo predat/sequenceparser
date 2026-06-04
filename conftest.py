@@ -17,6 +17,13 @@ import types
 _root = os.path.dirname(os.path.abspath(__file__))
 _build_src = os.path.join(_root, "build", "src")
 
+# On Windows the compiled extension (_sequenceParser.pyd) depends on
+# sequenceParser.dll sitting next to it. Since Python 3.8 the directory of an
+# extension module is no longer searched automatically for its dependent DLLs,
+# so register it explicitly before the import happens.
+if sys.platform == "win32" and os.path.isdir(_build_src):
+    os.add_dll_directory(_build_src)
+
 _pkg = types.ModuleType("pySequenceParser")
 _pkg.__path__ = [
     os.path.join(_build_src, "sequenceParser"),  # sequenceParser.py lives here

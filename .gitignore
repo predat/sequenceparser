@@ -10,6 +10,7 @@ build/
 
 # python
 *.pyc
+__pycache__/
 
 # ignore scons config file (which is user specific)
 /*.sconf

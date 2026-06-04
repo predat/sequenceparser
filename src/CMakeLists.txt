@@ -48,13 +48,31 @@ endif()
 # ────────────────────────────────────────────────────────────────────────────
 # Install: headers + libraries
 # ────────────────────────────────────────────────────────────────────────────
+# Only the public headers needed to use libsequenceParser from C++.
+# The detail/ headers and utils.hpp are implementation details (never included
+# by a public header — Sequence.hpp only forward-declares detail::FileNumbers),
+# so they are intentionally not installed.
 install(
-    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser"
-    DESTINATION include
-    FILES_MATCHING
-        PATTERN "*.hpp"
-        PATTERN "*.tcc"
-        PATTERN "*.i"
+    FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser/sequenceParser.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser/common.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser/FrameRange.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser/Sequence.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser/Sequence.tcc"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser/Item.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser/ItemStat.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser/system.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser/filesystem.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser/detector.hpp"
+    DESTINATION include/sequenceParser
+)
+
+# SWIG interface files: not C++ headers, only useful to regenerate Python/Java
+# bindings against the installed library. Shipped under share/, not include/.
+install(
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/sequenceParser/"
+    DESTINATION share/sequenceParser/swig
+    FILES_MATCHING PATTERN "*.i"
 )
 
 if(BUILD_STATIC_LIBS)
