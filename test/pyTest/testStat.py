@@ -119,9 +119,9 @@ def testSymLinkStat(root_path):
     assert itemStat.groupCanRead is True
     if platform.system() == "Linux":
         assert itemStat.groupCanWrite is True
+        assert itemStat.otherCanRead is True
+        assert itemStat.otherCanWrite is True
     assert itemStat.groupCanExecute is True
-    assert itemStat.otherCanRead is True
-    assert itemStat.otherCanWrite is True
     assert itemStat.otherCanExecute is True
 
 
