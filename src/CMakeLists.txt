@@ -42,6 +42,11 @@ if(BUILD_SHARED_LIBS)
     set_target_properties(sequenceparser-shared PROPERTIES
         SOVERSION ${SEQUENCEPARSER_VERSION_MAJOR}
         VERSION   ${SEQUENCEPARSER_VERSION}
+        # The code has no __declspec(dllexport) annotations, so on Windows MSVC
+        # would export nothing and produce no import .lib — anything linking
+        # against it (the SWIG modules) then fails with LNK1181. Auto-export
+        # every symbol so the import library is generated. No-op elsewhere.
+        WINDOWS_EXPORT_ALL_SYMBOLS ON
     )
 endif()
 
@@ -179,6 +184,14 @@ if(Python3_Development_FOUND)
 
     target_include_directories(${_py_target} PRIVATE ${Python3_INCLUDE_DIRS})
     target_link_libraries(${_py_target} PRIVATE sequenceparser-shared Python3::Module)
+
+    # The runtime module is `_sequenceParser.pyd`, but its import library would
+    # default to `sequenceParser.lib` — the exact same path as the core shared
+    # library's import lib (OUTPUT_NAME sequenceParser). On Windows that clobbers
+    # it; name the module's implib after the module to avoid the collision.
+    if(WIN32)
+        set_target_properties(${_py_target} PROPERTIES ARCHIVE_OUTPUT_NAME _sequenceParser)
+    endif()
 
     if(NOT APPLE AND NOT WIN32)
         set_target_properties(${_py_target} PROPERTIES
